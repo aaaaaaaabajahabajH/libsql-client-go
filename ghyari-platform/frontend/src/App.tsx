@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
 import { motion } from "framer-motion";
 import HeroSection3D from "./components/HeroSection3D";
+import CatalogPage from "./pages/CatalogPage";
 import { colors } from "./theme/colors";
 
 const queryClient = new QueryClient({
@@ -365,9 +366,9 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/products" element={<div>Products Page</div>} />
-          <Route path="/tuning" element={<div>Tuning/Performance Page</div>} />
-          <Route path="/distributors" element={<div>Distributors Page</div>} />
+          <Route path="/products" element={<CatalogPage />} />
+          <Route path="/tuning" element={<CatalogPage />} />
+          <Route path="/distributors" element={<div style={{ paddingTop: "80px", textAlign: "center", color: "#fff" }}>الموزعون - قريباً</div>} />
         </Routes>
       </BrowserRouter>
       <Toaster

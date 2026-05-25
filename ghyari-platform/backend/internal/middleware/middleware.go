@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -165,7 +166,5 @@ func getEnv(key, fallback string) string {
 }
 
 func lookupEnv(key string) string {
-	// Avoids importing os in this file — caller should inject via config
-	// In production, use a config struct
-	return ""
+	return os.Getenv(key)
 }

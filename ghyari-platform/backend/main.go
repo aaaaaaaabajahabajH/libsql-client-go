@@ -15,6 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
 
+	"github.com/ghyari/api/internal/db"
 	"github.com/ghyari/api/internal/handlers"
 	"github.com/ghyari/api/internal/middleware"
 )
@@ -41,23 +42,33 @@ func main() {
 		connStr = fmt.Sprintf("%s?authToken=%s", dbURL, dbToken)
 	}
 
-	db, err := sql.Open("libsql", connStr)
+	database, err := sql.Open("libsql", connStr)
 	if err != nil {
 		log.Fatalf("failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer database.Close()
 
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(10)
-	db.SetConnMaxLifetime(5 * time.Minute)
+	database.SetMaxOpenConns(25)
+	database.SetMaxIdleConns(10)
+	database.SetConnMaxLifetime(5 * time.Minute)
 
 	// Verify connection
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := db.PingContext(ctx); err != nil {
+	if err := database.PingContext(ctx); err != nil {
 		log.Fatalf("database ping failed: %v", err)
 	}
 	log.Println("✅ Database connected:", dbURL)
+
+	// ── Migrations & Seed ─────────────────────────────────────────────────────
+	migrateCtx, migrateCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer migrateCancel()
+	if err := db.Migrate(migrateCtx, database); err != nil {
+		log.Fatalf("migration failed: %v", err)
+	}
+	if err := db.Seed(migrateCtx, database); err != nil {
+		log.Printf("⚠️  Seed warning: %v", err)
+	}
 
 	// ── Router ────────────────────────────────────────────────────────────────
 	router := gin.New()
@@ -82,7 +93,7 @@ func main() {
 
 	// ── Health check ─────────────────────────────────────────────────────────
 	router.GET("/health", func(c *gin.Context) {
-		if err := db.PingContext(c.Request.Context()); err != nil {
+		if err := database.PingContext(c.Request.Context()); err != nil {
 			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unhealthy", "db": err.Error()})
 			return
 		}
@@ -95,12 +106,13 @@ func main() {
 	})
 
 	// ── Instantiate handlers ──────────────────────────────────────────────────
-	productHandler := handlers.NewProductHandler(db)
-	categoryHandler := handlers.NewCategoryHandler(db)
-	orderHandler := handlers.NewOrderHandler(db)
-	aiRadarHandler := handlers.NewAIRadarHandler(db)
-	distributorHandler := handlers.NewDistributorHandler(db)
-	authHandler := handlers.NewAuthHandler(db)
+	productHandler := handlers.NewProductHandler(database)
+	categoryHandler := handlers.NewCategoryHandler(database)
+	orderHandler := handlers.NewOrderHandler(database)
+	aiRadarHandler := handlers.NewAIRadarHandler(database)
+	distributorHandler := handlers.NewDistributorHandler(database)
+	authHandler := handlers.NewAuthHandler(database)
+	carHandler := handlers.NewCarHandler(database)
 
 	// ── API v1 routes ─────────────────────────────────────────────────────────
 	v1 := router.Group("/api/v1")
@@ -122,6 +134,13 @@ func main() {
 		products.GET("/compatible", productHandler.Compatible)
 		products.GET("/performance", productHandler.ListPerformanceParts)
 		products.GET("/featured", productHandler.ListFeatured)
+	}
+
+	// Car brands and models
+	cars := v1.Group("/cars")
+	{
+		cars.GET("", carHandler.ListBrands)
+		cars.GET("/:brand/models", carHandler.ListModels)
 	}
 
 	// Public category routes
