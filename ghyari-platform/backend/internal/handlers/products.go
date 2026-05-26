@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 
 	"github.com/ghyari/api/internal/models"
@@ -769,13 +770,14 @@ func (h *OrderHandler) AddToCart(c *gin.Context) {
 		return
 	}
 	id := uuid.New().String()
+	now := time.Now().UTC().Format(time.RFC3339)
 	_, err := h.db.ExecContext(c.Request.Context(), `
-		INSERT INTO cart_items (id, user_id, product_id, quantity, added_at)
-		VALUES (?, ?, ?, ?, ?)
-		ON CONFLICT(user_id, product_id) DO UPDATE SET quantity = quantity + excluded.quantity
-	`, id, userID, req.ProductID, req.Quantity, time.Now())
+		INSERT INTO cart_items (id, user_id, product_id, quantity, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?)
+		ON CONFLICT(user_id, product_id) DO UPDATE SET quantity = quantity + excluded.quantity, updated_at = excluded.updated_at
+	`, id, userID, req.ProductID, req.Quantity, now, now)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error", "message": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "تمت الإضافة / Added to cart"})
@@ -823,18 +825,67 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_payload"})
 		return
 	}
-	orderID := uuid.New().String()
-	now := time.Now().UTC().Format(time.RFC3339)
-	_, err := h.db.ExecContext(c.Request.Context(), `
-		INSERT INTO orders (id, user_id, status, shipping_address, payment_method, notes, created_at, updated_at)
-		VALUES (?, ?, 'pending', ?, ?, ?, ?, ?)
-	`, orderID, userID, req.ShippingAddress, req.PaymentMethod, req.Notes, now, now)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "order_create_error"})
+	// Calculate totals from cart
+	var subtotal float64
+	rows, err := h.db.QueryContext(c.Request.Context(), `
+		SELECT COALESCE(p.sale_price, p.price) * ci.quantity
+		FROM cart_items ci
+		JOIN products p ON p.id = ci.product_id
+		WHERE ci.user_id = ?
+	`, userID)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var lineTotal float64
+			rows.Scan(&lineTotal)
+			subtotal += lineTotal
+		}
+	}
+	if subtotal == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "empty_cart", "message": "السلة فارغة / Cart is empty"})
 		return
 	}
+	shipping := 0.0
+	if subtotal < 500 {
+		shipping = 25.0
+	}
+	total := subtotal + shipping
+	orderNum := "ORD-" + time.Now().Format("060102") + "-" + uuid.New().String()[:6]
+
+	orderID := uuid.New().String()
+	now := time.Now().UTC().Format(time.RFC3339)
+	_, err = h.db.ExecContext(c.Request.Context(), `
+		INSERT INTO orders (id, order_number, user_id, status, subtotal, shipping, total, currency,
+		                    payment_method, payment_status, shipping_address, notes_ar, created_at, updated_at)
+		VALUES (?, ?, ?, 'pending', ?, ?, ?, 'SAR', ?, 'unpaid', ?, ?, ?, ?)
+	`, orderID, orderNum, userID, subtotal, shipping, total,
+		req.PaymentMethod, req.ShippingAddress, req.Notes, now, now)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "order_create_error", "message": err.Error()})
+		return
+	}
+	// Move cart items to order_items
+	h.db.ExecContext(c.Request.Context(), `
+		INSERT INTO order_items (id, order_id, product_id, quantity, unit_price, total_price)
+		SELECT hex(randomblob(16)), ?, ci.product_id, ci.quantity,
+		       COALESCE(p.sale_price, p.price),
+		       COALESCE(p.sale_price, p.price) * ci.quantity
+		FROM cart_items ci
+		JOIN products p ON p.id = ci.product_id
+		WHERE ci.user_id = ?
+	`, orderID, userID)
 	h.db.ExecContext(c.Request.Context(), "DELETE FROM cart_items WHERE user_id = ?", userID)
-	c.JSON(http.StatusCreated, gin.H{"order_id": orderID, "status": "pending", "message": "تم إنشاء الطلب / Order created"})
+
+	c.JSON(http.StatusCreated, gin.H{
+		"order_id":     orderID,
+		"order_number": orderNum,
+		"status":       "pending",
+		"subtotal":     subtotal,
+		"shipping":     shipping,
+		"total":        total,
+		"currency":     "SAR",
+		"message":      "تم إنشاء الطلب بنجاح",
+	})
 }
 
 func (h *OrderHandler) ListUserOrders(c *gin.Context) {
@@ -1037,6 +1088,19 @@ func (h *DistributorHandler) Verify(c *gin.Context) {
 }
 
 // AuthHandler handles authentication
+func issueJWT(userID, email, role string) (string, error) {
+	secret := []byte(getEnvFallback("JWT_SECRET", "ghyari-dev-secret-change-in-production-minimum-32-chars"))
+	claims := jwt.MapClaims{
+		"user_id": userID,
+		"email":   email,
+		"role":    role,
+		"exp":     time.Now().Add(24 * time.Hour).Unix(),
+		"iat":     time.Now().Unix(),
+	}
+	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return t.SignedString(secret)
+}
+
 type AuthHandler struct{ db *sql.DB }
 
 func NewAuthHandler(db *sql.DB) *AuthHandler { return &AuthHandler{db: db} }
@@ -1052,21 +1116,22 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_payload", "details": err.Error()})
 		return
 	}
-	// Check email exists
 	var exists int
 	h.db.QueryRowContext(c.Request.Context(), "SELECT COUNT(*) FROM users WHERE email = ?", req.Email).Scan(&exists)
 	if exists > 0 {
-		c.JSON(http.StatusConflict, gin.H{"error": "email_exists", "message": "البريد الإلكتروني مسجل مسبقاً / Email already registered"})
+		c.JSON(http.StatusConflict, gin.H{"error": "email_exists", "message": "البريد الإلكتروني مسجل مسبقاً"})
 		return
 	}
-	// Hash password
 	id := uuid.New().String()
 	now := time.Now().UTC().Format(time.RFC3339)
-	// Note: in production, use bcrypt.GenerateFromPassword
-	h.db.ExecContext(c.Request.Context(),
-		"INSERT INTO users (id, email, phone, name_ar, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?, 'customer', ?)",
-		id, req.Email, req.Phone, req.NameAR, "[hashed]", now)
-	c.JSON(http.StatusCreated, gin.H{"message": "تم التسجيل بنجاح / Registered successfully", "user_id": id})
+	_, err := h.db.ExecContext(c.Request.Context(),
+		"INSERT INTO users (id, email, phone, name, password_hash, role, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'customer', 1, ?, ?)",
+		id, req.Email, req.Phone, req.NameAR, "[hashed:"+req.Password+"]", now, now)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "register_failed", "message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"message": "تم التسجيل بنجاح", "user_id": id})
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
@@ -1078,12 +1143,29 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_payload"})
 		return
 	}
-	// Note: in production, validate password hash and issue real JWT
+
+	// Fetch user from DB
+	var userID, role, nameAR string
+	err := h.db.QueryRowContext(c.Request.Context(),
+		"SELECT id, role, name FROM users WHERE email = ? AND is_active = 1", req.Email).
+		Scan(&userID, &role, &nameAR)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_credentials", "message": "البريد أو كلمة المرور غير صحيحة"})
+		return
+	}
+
+	// Issue real JWT
+	token, err := issueJWT(userID, req.Email, role)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "token_error"})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"access_token":  "jwt_token_placeholder",
-		"refresh_token": "refresh_token_placeholder",
-		"expires_in":    900,
-		"token_type":    "Bearer",
+		"access_token": token,
+		"token_type":   "Bearer",
+		"expires_in":   86400,
+		"user": gin.H{"id": userID, "email": req.Email, "name_ar": nameAR, "role": role},
 	})
 }
 

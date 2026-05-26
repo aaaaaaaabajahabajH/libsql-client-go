@@ -22,6 +22,7 @@ func Migrate(ctx context.Context, db *sql.DB) error {
 		{"create_ai_radar", schemaAIRadar},
 		{"create_reviews", schemaReviews},
 		{"create_migrations_table", schemaMigrationsTable},
+		{"create_cart_items", schemaCartItems},
 	}
 
 	// Ensure migrations table exists first
@@ -324,3 +325,16 @@ CREATE INDEX IF NOT EXISTS idx_reviews_product ON reviews(product_id, is_active)
 `
 
 const schemaMigrationsTable = `SELECT 1;` // already created above, placeholder
+
+const schemaCartItems = `
+CREATE TABLE IF NOT EXISTS cart_items (
+	id         TEXT PRIMARY KEY,
+	user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	product_id TEXT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+	quantity   INTEGER NOT NULL DEFAULT 1 CHECK(quantity > 0),
+	created_at TEXT DEFAULT (datetime('now')),
+	updated_at TEXT DEFAULT (datetime('now')),
+	UNIQUE(user_id, product_id)
+);
+CREATE INDEX IF NOT EXISTS idx_cart_user ON cart_items(user_id);
+`
