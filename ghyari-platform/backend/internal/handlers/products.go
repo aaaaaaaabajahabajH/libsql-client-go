@@ -142,29 +142,25 @@ func (h *ProductHandler) Search(c *gin.Context) {
 	offset := (page - 1) * limit
 
 	// FTS5 search on Arabic + English fields + SKU
-	searchQuery := `
-		SELECT p.*, rank
+	ftsQuery := fmt.Sprintf(`"%s"`, strings.ReplaceAll(q, `"`, ``))
+	ftsSQL := `SELECT ` + productColumnsP + `
 		FROM products p
 		JOIN products_fts ON products_fts.rowid = p.rowid
 		WHERE products_fts MATCH ?
 		  AND p.is_active = 1
 		ORDER BY rank
-		LIMIT ? OFFSET ?
-	`
+		LIMIT ? OFFSET ?`
 
-	// FTS5 match string — search Arabic and English
-	ftsQuery := fmt.Sprintf(`"%s"`, strings.ReplaceAll(q, `"`, ``))
-
-	rows, err := h.db.QueryContext(c.Request.Context(), searchQuery, ftsQuery, limit, offset)
+	rows, err := h.db.QueryContext(c.Request.Context(), ftsSQL, ftsQuery, limit, offset)
 	if err != nil {
-		// Fallback to LIKE search if FTS fails
-		rows, err = h.db.QueryContext(c.Request.Context(), `
-			SELECT * FROM products
+		// Fallback to LIKE search if FTS table doesn't exist
+		like := "%" + q + "%"
+		likeSQL := `SELECT ` + productColumns + ` FROM products
 			WHERE is_active = 1
 			  AND (name_ar LIKE ? OR name_en LIKE ? OR sku LIKE ? OR brand LIKE ?)
 			ORDER BY sold_count DESC, rating DESC
-			LIMIT ? OFFSET ?
-		`, "%"+q+"%", "%"+q+"%", "%"+q+"%", "%"+q+"%", limit, offset)
+			LIMIT ? OFFSET ?`
+		rows, err = h.db.QueryContext(c.Request.Context(), likeSQL, like, like, like, like, limit, offset)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "search_error", "message": err.Error()})
 			return
@@ -571,6 +567,19 @@ const productColumns = `id, name_ar, name_en,
 	COALESCE(tags,'[]'), COALESCE(search_keywords_ar,'[]'), COALESCE(compatibility,'[]'),
 	rating, review_count, sold_count, view_count,
 	is_active, is_featured, created_at, updated_at`
+
+// productColumnsP is productColumns but with the "p." table alias for JOINs.
+const productColumnsP = `p.id, p.name_ar, p.name_en,
+	COALESCE(p.description_ar,''), COALESCE(p.description_en,''),
+	p.sku, COALESCE(p.barcode,''), COALESCE(p.category_id,''), COALESCE(p.sub_category,''),
+	p.brand, COALESCE(p.car_brand,''),
+	p.price, COALESCE(p.sale_price,0), p.currency, p.stock, p.low_stock_alert,
+	COALESCE(p.images,'[]'), COALESCE(p.model_3d_url,''),
+	p.is_performance, p.is_tuning, p.is_oem,
+	COALESCE(p.distributor_id,''), COALESCE(p.weight_kg,0), COALESCE(p.dimensions,''),
+	COALESCE(p.tags,'[]'), COALESCE(p.search_keywords_ar,'[]'), COALESCE(p.compatibility,'[]'),
+	p.rating, p.review_count, p.sold_count, p.view_count,
+	p.is_active, p.is_featured, p.created_at, p.updated_at`
 
 func buildProductListQuery(f *models.ProductFilter) (string, []interface{}) {
 	base := "SELECT " + productColumns + " FROM products WHERE is_active = 1"

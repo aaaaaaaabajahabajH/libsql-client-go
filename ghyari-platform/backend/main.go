@@ -13,6 +13,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
 	_ "modernc.org/sqlite"
 
@@ -75,6 +76,7 @@ func main() {
 	router := gin.New()
 	router.Use(gin.Recovery())
 	router.Use(middleware.Logger())
+	router.Use(middleware.Metrics())
 
 	// CORS configuration
 	router.Use(cors.New(cors.Config{
@@ -91,6 +93,9 @@ func main() {
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+
+	// ── Metrics (Prometheus scrape endpoint) ─────────────────────────────────
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// ── Health check ─────────────────────────────────────────────────────────
 	router.GET("/health", func(c *gin.Context) {
