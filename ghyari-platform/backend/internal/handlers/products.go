@@ -375,8 +375,8 @@ func (h *ProductHandler) Create(c *gin.Context) {
 	}
 
 	p.ID = uuid.New().String()
-	p.CreatedAt = time.Now()
-	p.UpdatedAt = time.Now()
+	p.CreatedAt = time.Now().UTC().Format(time.RFC3339)
+	p.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
 	p.IsActive = true
 
 	// Serialize complex fields
@@ -426,7 +426,7 @@ func (h *ProductHandler) Update(c *gin.Context) {
 		return
 	}
 
-	p.UpdatedAt = time.Now()
+	p.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
 	imagesJSON, _ := json.Marshal(p.Images)
 	compatJSON, _ := json.Marshal(p.Compatibility)
 	tagsJSON, _ := json.Marshal(p.Tags)
@@ -514,8 +514,8 @@ func (h *ProductHandler) BulkImport(c *gin.Context) {
 
 	for i, p := range products {
 		p.ID = uuid.New().String()
-		p.CreatedAt = time.Now()
-		p.UpdatedAt = time.Now()
+		p.CreatedAt = time.Now().UTC().Format(time.RFC3339)
+		p.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
 		p.IsActive = true
 
 		imagesJSON, _ := json.Marshal(p.Images)
@@ -560,12 +560,24 @@ func (h *ProductHandler) fetchProductByID(ctx interface{ Deadline() (time.Time, 
 	return nil, sql.ErrNoRows // placeholder — implement with actual scan
 }
 
+const productColumns = `id, name_ar, name_en,
+	COALESCE(description_ar,''), COALESCE(description_en,''),
+	sku, COALESCE(barcode,''), COALESCE(category_id,''), COALESCE(sub_category,''),
+	brand, COALESCE(car_brand,''),
+	price, COALESCE(sale_price, 0), currency, stock, low_stock_alert,
+	COALESCE(images,'[]'), COALESCE(model_3d_url,''),
+	is_performance, is_tuning, is_oem,
+	COALESCE(distributor_id,''), COALESCE(weight_kg, 0), COALESCE(dimensions,''),
+	COALESCE(tags,'[]'), COALESCE(search_keywords_ar,'[]'), COALESCE(compatibility,'[]'),
+	rating, review_count, sold_count, view_count,
+	is_active, is_featured, created_at, updated_at`
+
 func buildProductListQuery(f *models.ProductFilter) (string, []interface{}) {
-	base := "SELECT * FROM products WHERE is_active = 1"
+	base := "SELECT " + productColumns + " FROM products WHERE is_active = 1"
 	args := []interface{}{}
 
 	if f.Category != "" {
-		base += " AND category = ?"
+		base += " AND category_id = ?"
 		args = append(args, f.Category)
 	}
 	if f.CarBrand != "" {
@@ -605,8 +617,8 @@ func buildProductListQuery(f *models.ProductFilter) (string, []interface{}) {
 
 func buildProductCountQuery(f *models.ProductFilter) string {
 	query, _ := buildProductListQuery(f)
-	// Replace SELECT * with SELECT COUNT(*)
-	return strings.Replace(query, "SELECT * FROM products", "SELECT COUNT(*) FROM products", 1)
+	// Replace SELECT <cols> with SELECT COUNT(*)
+	return strings.Replace(query, "SELECT "+productColumns, "SELECT COUNT(*)", 1)
 }
 
 func scanProductRows(rows *sql.Rows) ([]*models.Product, error) {
@@ -618,9 +630,11 @@ func scanProductRows(rows *sql.Rows) ([]*models.Product, error) {
 
 		err := rows.Scan(
 			&p.ID, &p.NameAR, &p.NameEN, &p.DescriptionAR, &p.DescriptionEN,
-			&p.SKU, &p.Barcode, &p.Category, &p.SubCategory, &p.Brand, &p.CarBrand,
+			&p.SKU, &p.Barcode, &p.Category, &p.SubCategory,
+			&p.Brand, &p.CarBrand,
 			&p.Price, &p.SalePrice, &p.Currency, &p.Stock, &p.LowStockAlert,
-			&imagesJSON, &p.Model3DURL, &p.IsPerformance, &p.IsTuning, &p.IsOEM,
+			&imagesJSON, &p.Model3DURL,
+			&p.IsPerformance, &p.IsTuning, &p.IsOEM,
 			&p.DistributorID, &p.Weight, &p.Dimensions,
 			&tagsJSON, &keywordsJSON, &compatJSON,
 			&p.Rating, &p.ReviewCount, &p.SoldCount, &p.ViewCount,
@@ -650,9 +664,9 @@ func NewCategoryHandler(db *sql.DB) *CategoryHandler { return &CategoryHandler{d
 
 func (h *CategoryHandler) List(c *gin.Context) {
 	rows, err := h.db.QueryContext(c.Request.Context(),
-		"SELECT id, name_ar, name_en, parent_id, type, icon_url, sort_order FROM categories WHERE parent_id IS NULL ORDER BY sort_order")
+		"SELECT id, name_ar, name_en, parent_id, slug, COALESCE(icon_url,''), sort_order FROM categories WHERE is_active = 1 ORDER BY sort_order")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error", "message": err.Error()})
 		return
 	}
 	defer rows.Close()
@@ -662,18 +676,18 @@ func (h *CategoryHandler) List(c *gin.Context) {
 		NameAR   string  `json:"name_ar"`
 		NameEN   string  `json:"name_en"`
 		ParentID *string `json:"parent_id"`
-		Type     string  `json:"type"`
+		Slug     string  `json:"slug"`
 		IconURL  string  `json:"icon_url"`
 		Sort     int     `json:"sort_order"`
 	}
 
-	var cats []Category
+	cats := []Category{}
 	for rows.Next() {
 		var cat Category
-		rows.Scan(&cat.ID, &cat.NameAR, &cat.NameEN, &cat.ParentID, &cat.Type, &cat.IconURL, &cat.Sort)
+		rows.Scan(&cat.ID, &cat.NameAR, &cat.NameEN, &cat.ParentID, &cat.Slug, &cat.IconURL, &cat.Sort)
 		cats = append(cats, cat)
 	}
-	c.JSON(http.StatusOK, gin.H{"data": cats})
+	c.JSON(http.StatusOK, gin.H{"categories": cats})
 }
 
 func (h *CategoryHandler) GetByID(c *gin.Context) {
@@ -801,7 +815,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		return
 	}
 	orderID := uuid.New().String()
-	now := time.Now()
+	now := time.Now().UTC().Format(time.RFC3339)
 	_, err := h.db.ExecContext(c.Request.Context(), `
 		INSERT INTO orders (id, user_id, status, shipping_address, payment_method, notes, created_at, updated_at)
 		VALUES (?, ?, 'pending', ?, ?, ?, ?, ?)
@@ -983,7 +997,7 @@ func (h *DistributorHandler) Create(c *gin.Context) {
 		return
 	}
 	d.ID = uuid.New().String()
-	d.JoinedAt = time.Now()
+	d.JoinedAt = time.Now().UTC().Format(time.RFC3339)
 	_, err := h.db.ExecContext(c.Request.Context(),
 		"INSERT INTO distributors (id, name_ar, name_en, city, region, phone, whatsapp, address, is_verified, rating, joined_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0.0, ?)",
 		d.ID, d.NameAR, d.NameEN, d.City, d.Region, d.Phone, d.WhatsApp, d.Address, d.JoinedAt)
@@ -1038,7 +1052,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 	// Hash password
 	id := uuid.New().String()
-	now := time.Now()
+	now := time.Now().UTC().Format(time.RFC3339)
 	// Note: in production, use bcrypt.GenerateFromPassword
 	h.db.ExecContext(c.Request.Context(),
 		"INSERT INTO users (id, email, phone, name_ar, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?, 'customer', ?)",

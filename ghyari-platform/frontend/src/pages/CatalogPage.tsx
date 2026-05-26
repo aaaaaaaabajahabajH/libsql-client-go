@@ -83,17 +83,18 @@ export default function CatalogPage() {
       searchProducts(searchQuery, carFilter.car_brand ? { car_brand: carFilter.car_brand } : {}),
     enabled: isSearchMode,
     staleTime: 60 * 1000,
-    onSuccess: (data) => {
-      // Zero results → log to AI Radar
-      if (data.count === 0 && searchQuery) {
-        submitDemandRequest({
-          query_raw: searchQuery,
-          car_model_raw: carFilter.car_model,
-          signal_type: "search_not_found",
-        });
-      }
-    },
   });
+
+  // Zero results → log to AI Radar
+  useEffect(() => {
+    if (searchData && searchData.count === 0 && searchQuery) {
+      submitDemandRequest({
+        query_raw: searchQuery,
+        car_model_raw: carFilter.car_model,
+        signal_type: "search_not_found",
+      });
+    }
+  }, [searchData, searchQuery]);
 
   const products: Product[] = isSearchMode
     ? (searchData?.data ?? [])

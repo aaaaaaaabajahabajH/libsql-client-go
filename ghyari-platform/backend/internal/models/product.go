@@ -1,7 +1,5 @@
 package models
 
-import "time"
-
 // Category constants
 const (
 	CategoryConsumables  = "consumables"  // تواير، بريكات، بطاريات
@@ -71,8 +69,8 @@ type Product struct {
 	ViewCount       int                `json:"view_count" db:"view_count"`
 	IsActive        bool               `json:"is_active" db:"is_active"`
 	IsFeatured      bool               `json:"is_featured" db:"is_featured"`
-	CreatedAt       time.Time          `json:"created_at" db:"created_at"`
-	UpdatedAt       time.Time          `json:"updated_at" db:"updated_at"`
+	CreatedAt       string             `json:"created_at" db:"created_at"`
+	UpdatedAt       string             `json:"updated_at" db:"updated_at"`
 }
 
 // ProductFilter for search/filter API
@@ -106,5 +104,5 @@ type Distributor struct {
 	Specialties []string  `json:"specialties" db:"specialties"` // ["nissan_tuning", "tires", etc.]
 	IsVerified  bool      `json:"is_verified" db:"is_verified"`
 	Rating      float64   `json:"rating" db:"rating"`
-	JoinedAt    time.Time `json:"joined_at" db:"joined_at"`
+	JoinedAt    string `json:"joined_at" db:"joined_at"`
 }

@@ -1,0 +1,35 @@
+# Node
+node_modules/
+dist/
+.vite/
+*.log
+
+# Go
+*.exe
+*.test
+*.out
+vendor/
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Build artifacts
+backend/ghyari_local.db*
+backend/ghyari-api
+frontend/dist/
