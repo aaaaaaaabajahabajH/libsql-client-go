@@ -11,15 +11,23 @@ services:
       - "8080:8080"
     environment:
       - PORT=8080
-      - ENV=development
-      - TURSO_DATABASE_URL=${TURSO_DATABASE_URL}
-      - TURSO_AUTH_TOKEN=${TURSO_AUTH_TOKEN}
+      - GIN_MODE=release
+      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_AUTH_TOKEN=${DATABASE_AUTH_TOKEN}
       - JWT_SECRET=${JWT_SECRET}
-      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://ghyari.sa,https://www.ghyari.sa}
       - REDIS_URL=redis://redis:6379
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
       - ghyari-network
 
@@ -28,11 +36,9 @@ services:
     build:
       context: ../frontend
       dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=/api/v1
     container_name: ghyari-frontend
-    ports:
-      - "3000:80"
-    depends_on:
-      - api
     restart: unless-stopped
     networks:
       - ghyari-network
@@ -41,11 +47,14 @@ services:
   redis:
     image: redis:7-alpine
     container_name: ghyari-redis
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
     networks:
       - ghyari-network
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
@@ -57,13 +66,14 @@ services:
       dockerfile: Dockerfile
     container_name: ghyari-ai-radar
     environment:
-      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
-      - TURSO_DATABASE_URL=${TURSO_DATABASE_URL}
-      - TURSO_AUTH_TOKEN=${TURSO_AUTH_TOKEN}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_AUTH_TOKEN=${DATABASE_AUTH_TOKEN}
       - REDIS_URL=redis://redis:6379
-      - SCAN_INTERVAL=300
+      - SCAN_INTERVAL=${SCAN_INTERVAL:-300}
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - ghyari-network

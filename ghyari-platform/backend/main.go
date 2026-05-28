@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -30,10 +31,27 @@ func main() {
 	// ── Environment ──────────────────────────────────────────────────────────
 	port := getEnv("PORT", "8080")
 	dbURL := getEnv("DATABASE_URL", "file:./ghyari_local.db")
-	dbToken := os.Getenv("DATABASE_AUTH_TOKEN") // empty for local dev
+	dbToken := os.Getenv("DATABASE_AUTH_TOKEN")
 
 	if os.Getenv("GIN_MODE") == "" {
 		gin.SetMode(gin.DebugMode)
+	}
+
+	// ── Startup validation ────────────────────────────────────────────────────
+	if os.Getenv("GIN_MODE") == "release" {
+		required := map[string]string{
+			"DATABASE_URL":    dbURL,
+			"JWT_SECRET":      os.Getenv("JWT_SECRET"),
+			"ANTHROPIC_API_KEY": os.Getenv("ANTHROPIC_API_KEY"),
+		}
+		for name, val := range required {
+			if val == "" || val == "file:./ghyari_local.db" {
+				log.Fatalf("❌ متغير البيئة المطلوب غير موجود: %s", name)
+			}
+		}
+		if os.Getenv("JWT_SECRET") == "CHANGE_ME_openssl_rand_hex_32" {
+			log.Fatalf("❌ يجب تغيير JWT_SECRET إلى قيمة عشوائية آمنة قبل الإطلاق")
+		}
 	}
 
 	// ── Database ─────────────────────────────────────────────────────────────
@@ -75,15 +93,16 @@ func main() {
 	router.Use(gin.Recovery())
 	router.Use(middleware.Logger())
 
-	// CORS configuration
+	// CORS configuration — origins from ALLOWED_ORIGINS env var
+	allowedOrigins := []string{"http://localhost:5173", "http://localhost:3000"}
+	if originsEnv := os.Getenv("ALLOWED_ORIGINS"); originsEnv != "" {
+		allowedOrigins = strings.Split(originsEnv, ",")
+		for i := range allowedOrigins {
+			allowedOrigins[i] = strings.TrimSpace(allowedOrigins[i])
+		}
+	}
 	router.Use(cors.New(cors.Config{
-		AllowOrigins: []string{
-			"http://localhost:5173",
-			"http://localhost:3000",
-			"https://ghyari.sa",
-			"https://www.ghyari.sa",
-			"https://ghyari.ae",
-		},
+		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Request-ID"},
 		ExposeHeaders:    []string{"X-Request-ID", "X-RateLimit-Remaining"},
