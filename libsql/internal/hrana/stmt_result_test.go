@@ -7,6 +7,46 @@ import (
 	"testing"
 )
 
+func TestGetLastInsertRowId(t *testing.T) {
+	tests := []struct {
+		name string
+		id   *string
+		want int64
+	}{
+		{
+			name: "nil returns zero",
+			id:   nil,
+			want: 0,
+		},
+		{
+			name: "valid integer",
+			id:   strPtr("42"),
+			want: 42,
+		},
+		{
+			name: "invalid string returns zero",
+			id:   strPtr("not-a-number"),
+			want: 0,
+		},
+		{
+			name: "zero",
+			id:   strPtr("0"),
+			want: 0,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &StmtResult{LastInsertRowId: tt.id}
+			got := r.GetLastInsertRowId()
+			if got != tt.want {
+				t.Errorf("GetLastInsertRowId() = %d, want %d", got, tt.want)
+			}
+		})
+	}
+}
+
+func strPtr(s string) *string { return &s }
+
 func TestStmtResult_UnmarshalJSON(t *testing.T) {
 	testCases := []struct {
 		name     string
