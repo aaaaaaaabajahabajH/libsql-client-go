@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -9,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 )
 
 // Logger returns a structured logging middleware
@@ -24,7 +27,6 @@ func Logger() gin.HandlerFunc {
 		duration := time.Since(start)
 		statusCode := c.Writer.Status()
 
-		// Structured log (zerolog format)
 		level := "INFO"
 		if statusCode >= 500 {
 			level = "ERROR"
@@ -135,36 +137,85 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 		}
 
 		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-			"error":   "insufficient_role",
-			"message": "غير مصرح لك بهذه العملية / Insufficient permissions",
+			"error":    "insufficient_role",
+			"message":  "غير مصرح لك بهذه العملية / Insufficient permissions",
 			"required": roles,
 		})
 	}
 }
 
-// RateLimit is a simple per-IP rate limiter (production: use Redis-backed)
+// RateLimit is a Redis-backed sliding window rate limiter.
+// Falls back to pass-through if Redis is unavailable (graceful degradation).
 func RateLimit(requestsPerMinute int) gin.HandlerFunc {
-	// Simple in-memory token bucket per IP
-	// Production: replace with Redis-based sliding window
-	_ = requestsPerMinute
+	rdb := newRedisClient()
+
 	return func(c *gin.Context) {
-		// TODO: Redis-backed rate limiter
+		if rdb == nil {
+			c.Next()
+			return
+		}
+
+		ip := c.ClientIP()
+		key := fmt.Sprintf("rate:%s", ip)
+		ctx := c.Request.Context()
+		now := time.Now()
+		window := time.Minute
+
+		pipe := rdb.Pipeline()
+		pipe.ZRemRangeByScore(ctx, key, "0", fmt.Sprintf("%d", now.Add(-window).UnixMilli()))
+		pipe.ZCard(ctx, key)
+		pipe.ZAdd(ctx, key, redis.Z{Score: float64(now.UnixMilli()), Member: uuid.New().String()})
+		pipe.Expire(ctx, key, window)
+		results, err := pipe.Exec(ctx)
+		if err != nil {
+			c.Next()
+			return
+		}
+
+		count := results[1].(*redis.IntCmd).Val()
+		remaining := int64(requestsPerMinute) - count
+		if remaining < 0 {
+			remaining = 0
+		}
+		c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", requestsPerMinute))
+		c.Header("X-RateLimit-Remaining", fmt.Sprintf("%d", remaining))
+
+		if count >= int64(requestsPerMinute) {
+			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
+				"error":   "rate_limit_exceeded",
+				"message": "تجاوزت الحد المسموح من الطلبات / Too many requests, please slow down",
+			})
+			return
+		}
 		c.Next()
 	}
 }
 
-func getJWTSecret() []byte {
-	secret := getEnv("JWT_SECRET", "ghyari-dev-secret-change-in-production-minimum-32-chars")
-	return []byte(secret)
-}
-
-func getEnv(key, fallback string) string {
-	if v := lookupEnv(key); v != "" {
-		return v
+func newRedisClient() *redis.Client {
+	redisURL := os.Getenv("REDIS_URL")
+	if redisURL == "" {
+		return nil
 	}
-	return fallback
+	opts, err := redis.ParseURL(redisURL)
+	if err != nil {
+		return nil
+	}
+	rdb := redis.NewClient(opts)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	if err := rdb.Ping(ctx).Err(); err != nil {
+		return nil
+	}
+	return rdb
 }
 
-func lookupEnv(key string) string {
-	return os.Getenv(key)
+func getJWTSecret() []byte {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		if os.Getenv("GIN_MODE") == "release" {
+			panic("JWT_SECRET يجب تعيينه في بيئة الإنتاج")
+		}
+		secret = "ghyari-dev-secret-change-in-production-minimum-32-chars"
+	}
+	return []byte(secret)
 }

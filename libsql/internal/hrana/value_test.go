@@ -76,6 +76,39 @@ func TestValueToValue(t *testing.T) {
 			},
 			want: time.Time{}.Add(time.Hour),
 		},
+		{
+			name:       "datetime column type",
+			columnType: "DATETIME",
+			value: Value{
+				Type:  "text",
+				Value: "0001-01-01T01:00:00",
+			},
+			want: time.Time{}.Add(time.Hour),
+		},
+		{
+			name: "blob with nil base64 returns nil",
+			value: Value{
+				Type:   "blob",
+				Base64: nil,
+			},
+			want: nil,
+		},
+		{
+			name: "integer with unparseable value returns nil",
+			value: Value{
+				Type:  "integer",
+				Value: "not-a-number",
+			},
+			want: nil,
+		},
+		{
+			name: "text without matching column type passes through",
+			value: Value{
+				Type:  "text",
+				Value: "2024-01-01",
+			},
+			want: "2024-01-01",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -138,11 +171,27 @@ func TestToValue(t *testing.T) {
 			},
 		},
 		{
-			name:  "boolean",
+			name:  "boolean true",
 			value: true,
 			want: Value{
 				Type:  "integer",
 				Value: "1",
+			},
+		},
+		{
+			name:  "boolean false",
+			value: false,
+			want: Value{
+				Type:  "integer",
+				Value: "0",
+			},
+		},
+		{
+			name:  "int64",
+			value: int64(99),
+			want: Value{
+				Type:  "integer",
+				Value: "99",
 			},
 		},
 		{
