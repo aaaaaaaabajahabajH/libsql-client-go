@@ -1,0 +1,89 @@
+steps:
+  # ── 1. Build backend Docker image ─────────────────────────────────────────
+  - name: "gcr.io/cloud-builders/docker"
+    id: build-api
+    args:
+      - build
+      - -t
+      - me-central1-docker.pkg.dev/project-fc665c2c-22d9-477b-8de/ghyari/api:$COMMIT_SHA
+      - -t
+      - me-central1-docker.pkg.dev/project-fc665c2c-22d9-477b-8de/ghyari/api:latest
+      - -f
+      - backend/Dockerfile
+      - ./backend
+    dir: ghyari-platform
+
+  # ── 2. Build frontend Docker image ────────────────────────────────────────
+  - name: "gcr.io/cloud-builders/docker"
+    id: build-frontend
+    args:
+      - build
+      - -t
+      - me-central1-docker.pkg.dev/project-fc665c2c-22d9-477b-8de/ghyari/frontend:$COMMIT_SHA
+      - -t
+      - me-central1-docker.pkg.dev/project-fc665c2c-22d9-477b-8de/ghyari/frontend:latest
+      - --build-arg
+      - VITE_API_URL=/api/v1
+      - -f
+      - frontend/Dockerfile
+      - ./frontend
+    dir: ghyari-platform
+
+  # ── 3. Push images to Artifact Registry ───────────────────────────────────
+  - name: "gcr.io/cloud-builders/docker"
+    id: push-api
+    args:
+      - push
+      - --all-tags
+      - me-central1-docker.pkg.dev/project-fc665c2c-22d9-477b-8de/ghyari/api
+    waitFor: [build-api]
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: push-frontend
+    args:
+      - push
+      - --all-tags
+      - me-central1-docker.pkg.dev/project-fc665c2c-22d9-477b-8de/ghyari/frontend
+    waitFor: [build-frontend]
+
+  # ── 4. Deploy API to Cloud Run ─────────────────────────────────────────────
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    id: deploy-api
+    entrypoint: gcloud
+    args:
+      - run
+      - services
+      - replace
+      - infrastructure/gcloud/cloudrun.yaml
+      - --region=me-central1
+      - --project=project-fc665c2c-22d9-477b-8de
+    dir: ghyari-platform
+    waitFor: [push-api]
+
+  # ── 5. Deploy Frontend to Cloud Run ───────────────────────────────────────
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    id: deploy-frontend
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ghyari-frontend
+      - --image=me-central1-docker.pkg.dev/project-fc665c2c-22d9-477b-8de/ghyari/frontend:$COMMIT_SHA
+      - --region=me-central1
+      - --project=project-fc665c2c-22d9-477b-8de
+      - --allow-unauthenticated
+      - --min-instances=1
+      - --max-instances=5
+      - --memory=256Mi
+      - --cpu=1
+    waitFor: [push-frontend]
+
+images:
+  - me-central1-docker.pkg.dev/project-fc665c2c-22d9-477b-8de/ghyari/api:$COMMIT_SHA
+  - me-central1-docker.pkg.dev/project-fc665c2c-22d9-477b-8de/ghyari/frontend:$COMMIT_SHA
+
+options:
+  machineType: E2_HIGHCPU_8
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: 1200s
