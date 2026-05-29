@@ -1,0 +1,95 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: ghyari-api
+  labels:
+    cloud.googleapis.com/location: me-central1
+  annotations:
+    run.googleapis.com/launch-stage: GA
+spec:
+  template:
+    metadata:
+      annotations:
+        # Scale to 0 when idle to save cost; increase min-instances for low latency
+        autoscaling.knative.dev/minScale: "1"
+        autoscaling.knative.dev/maxScale: "10"
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 30
+      serviceAccountName: ghyari-api@project-fc665c2c-22d9-477b-8de.iam.gserviceaccount.com
+
+      containers:
+        - image: me-central1-docker.pkg.dev/project-fc665c2c-22d9-477b-8de/ghyari/api:latest
+          ports:
+            - containerPort: 8080
+
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
+
+          env:
+            - name: PORT
+              value: "8080"
+            - name: GIN_MODE
+              value: release
+
+            # ── Secrets from Secret Manager ──────────────────────────────────
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ghyari-database-url
+                  key: latest
+
+            - name: DATABASE_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ghyari-database-auth-token
+                  key: latest
+
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: ghyari-jwt-secret
+                  key: latest
+
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ghyari-anthropic-api-key
+                  key: latest
+
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ghyari-redis-url
+                  key: latest
+
+            # ── GCS ─────────────────────────────────────────────────────────
+            - name: GCS_BUCKET
+              value: ghyari-assets-project-fc665c2c-22d9-477b-8de
+
+            - name: GCS_CDN_BASE
+              value: https://assets.ghyari.sa
+
+            # ── CORS ────────────────────────────────────────────────────────
+            - name: ALLOWED_ORIGINS
+              value: https://ghyari.sa,https://www.ghyari.sa
+
+          livenessProbe:
+            httpGet:
+              path: /health
+            initialDelaySeconds: 5
+            periodSeconds: 15
+
+          startupProbe:
+            httpGet:
+              path: /health
+            initialDelaySeconds: 2
+            failureThreshold: 10
+            periodSeconds: 3
+
+  traffic:
+    - percent: 100
+      latestRevision: true

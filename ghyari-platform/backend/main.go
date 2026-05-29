@@ -19,6 +19,7 @@ import (
 	"github.com/ghyari/api/internal/db"
 	"github.com/ghyari/api/internal/handlers"
 	"github.com/ghyari/api/internal/middleware"
+	"github.com/ghyari/api/internal/storage"
 )
 
 // App holds application-level dependencies
@@ -88,6 +89,20 @@ func main() {
 		log.Printf("⚠️  Seed warning: %v", err)
 	}
 
+	// ── Google Cloud Storage (optional) ──────────────────────────────────────
+	var gcsClient *storage.GCSClient
+	if os.Getenv("GCS_BUCKET") != "" {
+		gcsCtx, gcsCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		if c, gcsErr := storage.NewGCSClient(gcsCtx); gcsErr != nil {
+			log.Printf("⚠️  GCS not available: %v", gcsErr)
+		} else {
+			gcsClient = c
+			defer gcsClient.Close()
+			log.Println("✅ Google Cloud Storage connected:", os.Getenv("GCS_BUCKET"))
+		}
+		gcsCancel()
+	}
+
 	// ── Router ────────────────────────────────────────────────────────────────
 	router := gin.New()
 	router.Use(gin.Recovery())
@@ -132,6 +147,7 @@ func main() {
 	distributorHandler := handlers.NewDistributorHandler(database)
 	authHandler := handlers.NewAuthHandler(database)
 	carHandler := handlers.NewCarHandler(database)
+	uploadHandler := handlers.NewUploadHandler(gcsClient)
 
 	// ── API v1 routes ─────────────────────────────────────────────────────────
 	v1 := router.Group("/api/v1")
@@ -250,6 +266,13 @@ func main() {
 		{
 			adminOrders.GET("", orderHandler.ListAllOrders)
 			adminOrders.PUT("/:id/status", orderHandler.UpdateOrderStatus)
+		}
+
+		// File uploads to GCS
+		adminUploads := admin.Group("/uploads")
+		{
+			adminUploads.POST("/signed-url", uploadHandler.SignedURL)
+			adminUploads.POST("/direct", uploadHandler.UploadDirect)
 		}
 	}
 

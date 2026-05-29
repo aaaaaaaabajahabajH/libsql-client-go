@@ -1,0 +1,160 @@
+name: Deploy to Google Cloud
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ghyari-platform/**"
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: project-fc665c2c-22d9-477b-8de
+  REGION: me-central1
+  AR_REPO: me-central1-docker.pkg.dev/project-fc665c2c-22d9-477b-8de/ghyari
+  API_SERVICE: ghyari-api
+  FRONTEND_SERVICE: ghyari-frontend
+
+jobs:
+  # ── Build & push images ────────────────────────────────────────────────────
+  build-and-push:
+    name: Build & Push Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # Workload Identity Federation
+
+    outputs:
+      sha: ${{ steps.meta.outputs.sha }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ghyari-deploy@project-fc665c2c-22d9-477b-8de.iam.gserviceaccount.com
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - id: meta
+        run: echo "sha=${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+
+      - name: Build & push API image
+        run: |
+          docker build \
+            -t ${{ env.AR_REPO }}/api:${{ steps.meta.outputs.sha }} \
+            -t ${{ env.AR_REPO }}/api:latest \
+            -f ghyari-platform/backend/Dockerfile \
+            ghyari-platform/backend
+          docker push --all-tags ${{ env.AR_REPO }}/api
+
+      - name: Build & push Frontend image
+        run: |
+          docker build \
+            -t ${{ env.AR_REPO }}/frontend:${{ steps.meta.outputs.sha }} \
+            -t ${{ env.AR_REPO }}/frontend:latest \
+            --build-arg VITE_API_URL=/api/v1 \
+            -f ghyari-platform/frontend/Dockerfile \
+            ghyari-platform/frontend
+          docker push --all-tags ${{ env.AR_REPO }}/frontend
+
+  # ── Deploy API to Cloud Run ────────────────────────────────────────────────
+  deploy-api:
+    name: Deploy API
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ghyari-deploy@project-fc665c2c-22d9-477b-8de.iam.gserviceaccount.com
+
+      - name: Deploy API via cloudrun.yaml
+        run: |
+          # Replace image tag in cloudrun.yaml
+          sed -i "s|:latest|:${{ needs.build-and-push.outputs.sha }}|g" \
+            ghyari-platform/infrastructure/gcloud/cloudrun.yaml
+
+          gcloud run services replace \
+            ghyari-platform/infrastructure/gcloud/cloudrun.yaml \
+            --region=${{ env.REGION }} \
+            --project=${{ env.PROJECT_ID }}
+
+      - name: Allow unauthenticated access to API
+        run: |
+          gcloud run services add-iam-policy-binding ${{ env.API_SERVICE }} \
+            --region=${{ env.REGION }} \
+            --project=${{ env.PROJECT_ID }} \
+            --member="allUsers" \
+            --role="roles/run.invoker"
+
+  # ── Deploy Frontend to Cloud Run ──────────────────────────────────────────
+  deploy-frontend:
+    name: Deploy Frontend
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ghyari-deploy@project-fc665c2c-22d9-477b-8de.iam.gserviceaccount.com
+
+      - name: Deploy Frontend
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.FRONTEND_SERVICE }}
+          region: ${{ env.REGION }}
+          project_id: ${{ env.PROJECT_ID }}
+          image: ${{ env.AR_REPO }}/frontend:${{ needs.build-and-push.outputs.sha }}
+          flags: >-
+            --allow-unauthenticated
+            --min-instances=1
+            --max-instances=5
+            --memory=256Mi
+            --cpu=1
+
+  # ── Post-deploy health check ───────────────────────────────────────────────
+  health-check:
+    name: Health Check
+    needs: [deploy-api, deploy-frontend]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get API URL
+        id: url
+        run: |
+          URL=$(gcloud run services describe ghyari-api \
+            --region=me-central1 \
+            --project=project-fc665c2c-22d9-477b-8de \
+            --format='value(status.url)')
+          echo "api_url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for API health
+        run: |
+          for i in $(seq 1 10); do
+            STATUS=$(curl -sf "${{ steps.url.outputs.api_url }}/health" | python3 -c "import sys,json; print(json.load(sys.stdin)['status'])" 2>/dev/null || echo "")
+            if [ "$STATUS" = "healthy" ]; then
+              echo "✅ API is healthy at ${{ steps.url.outputs.api_url }}"
+              exit 0
+            fi
+            echo "Attempt $i/10 — waiting..."
+            sleep 6
+          done
+          echo "❌ Health check failed"
+          exit 1
