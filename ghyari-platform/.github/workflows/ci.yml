@@ -104,6 +104,38 @@ jobs:
           path: ghyari-platform/frontend/dist/
           retention-days: 7
 
+  # ────────────────────────── Mobile (React Native / Expo) ─────────────────────
+  mobile:
+    name: Mobile (Expo + TypeScript)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ghyari-platform/mobile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: ghyari-platform/mobile/package-lock.json
+
+      - name: Install
+        run: npm ci --frozen-lockfile
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Validate app.json
+        run: node -e "
+          const cfg = require('./app.json');
+          const ios = cfg.expo.ios;
+          if (!ios.bundleIdentifier) throw new Error('Missing bundleIdentifier');
+          if (!ios.privacyManifests) throw new Error('Missing privacyManifests (required iOS 17+)');
+          console.log('app.json valid — bundle:', ios.bundleIdentifier);
+        "
+
   # ────────────────────────── Performance baseline ──────────────────────────────
   perf-baseline:
     name: Performance Baseline
