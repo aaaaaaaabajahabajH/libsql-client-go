@@ -7,6 +7,7 @@ import {
   Dimensions,
 } from "react-native";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { colors, spacing, radius, typography } from "../theme";
 import { Product } from "../types";
@@ -26,8 +27,11 @@ export default function ProductCard({ product, onPress }: Props) {
   const isAr = language === "ar";
 
   const name = isAr ? product.name_ar : product.name_en;
-  const hasDiscount = product.sale_price && product.sale_price < product.price;
+  const hasDiscount = product.sale_price != null && product.sale_price < product.price;
   const displayPrice = hasDiscount ? product.sale_price! : product.price;
+  const discountPct = hasDiscount
+    ? Math.round(((product.price - displayPrice) / product.price) * 100)
+    : 0;
   const imageUrl = product.images?.[0];
 
   const handleAddToCart = () => {
@@ -39,7 +43,7 @@ export default function ProductCard({ product, onPress }: Props) {
     <TouchableOpacity
       style={styles.card}
       onPress={onPress}
-      activeOpacity={0.85}
+      activeOpacity={0.88}
     >
       {/* Image */}
       <View style={styles.imageContainer}>
@@ -51,30 +55,54 @@ export default function ProductCard({ product, onPress }: Props) {
             transition={300}
           />
         ) : (
-          <View style={styles.imagePlaceholder}>
+          <LinearGradient
+            colors={["#0F0F1A", "#141420"]}
+            style={styles.imagePlaceholder}
+          >
             <Text style={styles.imagePlaceholderText}>🔧</Text>
+          </LinearGradient>
+        )}
+
+        {/* Bottom gradient overlay */}
+        <LinearGradient
+          colors={["transparent", "rgba(10,10,15,0.7)"]}
+          style={styles.imageOverlay}
+        />
+
+        {/* Discount badge */}
+        {hasDiscount && discountPct > 0 && (
+          <View style={styles.discountBadge}>
+            <Text style={styles.discountText}>-{discountPct}%</Text>
           </View>
         )}
-        {hasDiscount && (
-          <View style={styles.saleBadge}>
-            <Text style={styles.saleBadgeText}>
-              {Math.round(((product.price - displayPrice) / product.price) * 100)}%
-            </Text>
-          </View>
-        )}
+
+        {/* Performance badge */}
         {product.is_performance && (
           <View style={styles.perfBadge}>
             <Text style={styles.perfBadgeText}>⚡</Text>
+          </View>
+        )}
+
+        {/* OEM badge */}
+        {product.is_oem && (
+          <View style={styles.oemBadge}>
+            <Text style={styles.oemText}>OEM</Text>
           </View>
         )}
       </View>
 
       {/* Info */}
       <View style={styles.info}>
-        <Text style={[styles.brand, { textAlign: isAr ? "right" : "left" }]} numberOfLines={1}>
+        <Text
+          style={[styles.brand, { textAlign: isAr ? "right" : "left" }]}
+          numberOfLines={1}
+        >
           {product.brand}
         </Text>
-        <Text style={[styles.name, { textAlign: isAr ? "right" : "left" }]} numberOfLines={2}>
+        <Text
+          style={[styles.name, { textAlign: isAr ? "right" : "left" }]}
+          numberOfLines={2}
+        >
           {name}
         </Text>
 
@@ -83,15 +111,18 @@ export default function ProductCard({ product, onPress }: Props) {
           <View style={[styles.ratingRow, { flexDirection: isAr ? "row-reverse" : "row" }]}>
             <Text style={styles.star}>★</Text>
             <Text style={styles.ratingText}>{product.rating.toFixed(1)}</Text>
-            <Text style={styles.reviewCount}>({product.review_count})</Text>
+            {product.review_count > 0 && (
+              <Text style={styles.reviewCount}>({product.review_count})</Text>
+            )}
           </View>
         )}
 
-        {/* Price + Cart */}
+        {/* Price row */}
         <View style={[styles.priceRow, { flexDirection: isAr ? "row-reverse" : "row" }]}>
           <View>
             <Text style={styles.price}>
-              {displayPrice.toLocaleString("ar-SA")} {isAr ? "ر.س" : "SAR"}
+              {displayPrice.toLocaleString("ar-SA")}{" "}
+              <Text style={styles.currency}>{isAr ? "ر.س" : "SAR"}</Text>
             </Text>
             {hasDiscount && (
               <Text style={styles.originalPrice}>
@@ -99,15 +130,29 @@ export default function ProductCard({ product, onPress }: Props) {
               </Text>
             )}
           </View>
-          <TouchableOpacity style={styles.cartBtn} onPress={handleAddToCart}>
-            <Text style={styles.cartBtnText}>+</Text>
+
+          <TouchableOpacity
+            style={[
+              styles.cartBtn,
+              product.stock === 0 && styles.cartBtnDisabled,
+            ]}
+            onPress={handleAddToCart}
+            disabled={product.stock === 0}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          >
+            <LinearGradient
+              colors={product.stock === 0 ? ["#333", "#444"] : ["#0066FF", "#0088FF"]}
+              style={styles.cartBtnGradient}
+            >
+              <Text style={styles.cartBtnText}>{product.stock === 0 ? "×" : "+"}</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
-        {/* Stock warning */}
-        {product.stock <= (product.low_stock_alert ?? 5) && product.stock > 0 && (
-          <Text style={styles.lowStock}>
-            {isAr ? `${product.stock} قطع متبقية` : `${product.stock} left`}
+        {/* Low stock */}
+        {product.stock > 0 && product.stock <= (product.low_stock_alert ?? 5) && (
+          <Text style={[styles.lowStock, { textAlign: isAr ? "right" : "left" }]}>
+            ⚠ {isAr ? `${product.stock} فقط` : `Only ${product.stock} left`}
           </Text>
         )}
       </View>
@@ -127,49 +172,66 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: "100%",
-    height: CARD_WIDTH * 0.75,
-    backgroundColor: colors.bg.tertiary,
+    height: CARD_WIDTH * 0.78,
     position: "relative",
+    backgroundColor: colors.bg.tertiary,
   },
-  image: {
-    width: "100%",
-    height: "100%",
-  },
+  image: { width: "100%", height: "100%" },
   imagePlaceholder: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  imagePlaceholderText: {
-    fontSize: 36,
-  },
-  saleBadge: {
+  imagePlaceholderText: { fontSize: 36 },
+  imageOverlay: {
     position: "absolute",
-    top: 8,
-    left: 8,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "35%",
+  },
+  discountBadge: {
+    position: "absolute",
+    top: 7,
+    left: 7,
     backgroundColor: colors.error,
-    borderRadius: radius.full,
+    borderRadius: radius.sm,
     paddingHorizontal: 7,
     paddingVertical: 3,
   },
-  saleBadgeText: {
+  discountText: {
     color: "#fff",
     fontSize: typography.sizes.xs,
     fontFamily: typography.fonts.arabicBold,
   },
   perfBadge: {
     position: "absolute",
-    top: 8,
-    right: 8,
-    backgroundColor: colors.orange[500],
-    borderRadius: radius.full,
+    top: 7,
+    right: 7,
     width: 26,
     height: 26,
+    backgroundColor: "rgba(255,107,0,0.85)",
+    borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
   },
-  perfBadgeText: {
-    fontSize: 12,
+  perfBadgeText: { fontSize: 12 },
+  oemBadge: {
+    position: "absolute",
+    bottom: 8,
+    left: 7,
+    backgroundColor: "rgba(0,255,136,0.2)",
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: "rgba(0,255,136,0.5)",
+  },
+  oemText: {
+    color: colors.success,
+    fontSize: 9,
+    fontFamily: typography.fonts.arabicBold,
+    letterSpacing: 0.5,
   },
   info: {
     padding: spacing.sm,
@@ -180,23 +242,20 @@ const styles = StyleSheet.create({
     color: colors.blue.neon,
     fontFamily: typography.fonts.arabicMedium,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
   name: {
     fontSize: typography.sizes.sm,
     color: colors.text.primary,
     fontFamily: typography.fonts.arabicMedium,
-    lineHeight: 18,
+    lineHeight: 17,
   },
   ratingRow: {
     alignItems: "center",
     gap: 3,
     marginTop: 2,
   },
-  star: {
-    color: colors.warning,
-    fontSize: typography.sizes.xs,
-  },
+  star: { color: colors.warning, fontSize: 11 },
   ratingText: {
     color: colors.text.secondary,
     fontSize: typography.sizes.xs,
@@ -210,12 +269,17 @@ const styles = StyleSheet.create({
   priceRow: {
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 4,
+    marginTop: 5,
   },
   price: {
     fontSize: typography.sizes.md,
     color: colors.orange[500],
     fontFamily: typography.fonts.arabicBold,
+  },
+  currency: {
+    fontSize: typography.sizes.xs,
+    color: colors.orange[400],
+    fontFamily: typography.fonts.arabic,
   },
   originalPrice: {
     fontSize: typography.sizes.xs,
@@ -224,23 +288,28 @@ const styles = StyleSheet.create({
     textDecorationLine: "line-through",
   },
   cartBtn: {
-    width: 30,
-    height: 30,
+    width: 32,
+    height: 32,
     borderRadius: radius.full,
-    backgroundColor: colors.blue[500],
+    overflow: "hidden",
+  },
+  cartBtnDisabled: { opacity: 0.4 },
+  cartBtnGradient: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
   cartBtnText: {
     color: "#fff",
-    fontSize: 18,
-    lineHeight: 20,
+    fontSize: 20,
     fontFamily: typography.fonts.arabicBold,
+    lineHeight: 22,
+    marginTop: -1,
   },
   lowStock: {
     fontSize: typography.sizes.xs,
     color: colors.warning,
-    fontFamily: typography.fonts.arabic,
+    fontFamily: typography.fonts.arabicMedium,
     marginTop: 2,
   },
 });
