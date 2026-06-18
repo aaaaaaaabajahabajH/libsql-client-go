@@ -39,7 +39,7 @@ async function request<T>(
   return res.json();
 }
 
-function qs(params: Record<string, string | number | boolean | undefined>): string {
+function qs(params: object): string {
   const p = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== "" && v !== null) p.set(k, String(v));

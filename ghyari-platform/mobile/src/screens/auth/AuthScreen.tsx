@@ -130,7 +130,6 @@ export default function AuthScreen() {
                     placeholder={isAr ? "اسمك الكامل" : "Your full name"}
                     placeholderTextColor={colors.text.muted}
                     autoCapitalize="words"
-                    writingDirection={isAr ? "rtl" : "ltr"}
                   />
                 </View>
                 <View style={styles.inputGroup}>
@@ -144,7 +143,6 @@ export default function AuthScreen() {
                     placeholder="+966 5X XXX XXXX"
                     placeholderTextColor={colors.text.muted}
                     keyboardType="phone-pad"
-                    writingDirection="ltr"
                   />
                 </View>
               </>
@@ -163,7 +161,6 @@ export default function AuthScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                writingDirection="ltr"
               />
             </View>
 
@@ -180,7 +177,6 @@ export default function AuthScreen() {
                   placeholderTextColor={colors.text.muted}
                   secureTextEntry={!showPass}
                   autoCapitalize="none"
-                  writingDirection="ltr"
                 />
                 <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPass((s) => !s)}>
                   <Text style={styles.eyeIcon}>{showPass ? "🙈" : "👁"}</Text>

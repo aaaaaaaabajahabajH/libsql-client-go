@@ -102,7 +102,6 @@ export default function CheckoutScreen() {
             placeholderTextColor={colors.text.muted}
             multiline
             numberOfLines={3}
-            writingDirection={isAr ? "rtl" : "ltr"}
           />
 
           <Text style={[styles.inputLabel, { textAlign: isAr ? "right" : "left" }]}>
@@ -116,7 +115,6 @@ export default function CheckoutScreen() {
             placeholderTextColor={colors.text.muted}
             multiline
             numberOfLines={2}
-            writingDirection={isAr ? "rtl" : "ltr"}
           />
         </View>
 
@@ -155,7 +153,7 @@ export default function CheckoutScreen() {
           </View>
           <View style={[styles.totalRow, { flexDirection: isAr ? "row-reverse" : "row" }]}>
             <Text style={styles.totalRowLabel}>{isAr ? "الشحن" : "Shipping"}</Text>
-            <Text style={[styles.totalRowValue, shipping === 0 && { color: colors.success }]}>
+            <Text style={[styles.totalRowValue, shipping === 0 ? { color: colors.success } : undefined]}>
               {shipping === 0 ? (isAr ? "مجاني" : "Free") : `${shipping} ${isAr ? "ر.س" : "SAR"}`}
             </Text>
           </View>

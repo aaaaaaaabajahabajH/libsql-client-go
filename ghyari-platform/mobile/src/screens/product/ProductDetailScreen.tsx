@@ -116,7 +116,7 @@ export default function ProductDetailScreen() {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.thumbnails}
                 >
-                  {product.images.map((img, idx) => (
+                  {product.images.map((img: string, idx: number) => (
                     <TouchableOpacity
                       key={idx}
                       onPress={() => setSelectedImageIdx(idx)}
@@ -251,7 +251,7 @@ export default function ProductDetailScreen() {
                 {isAr ? "التوافق" : "Compatibility"}
               </Text>
               <View style={styles.tagsWrap}>
-                {product.compatibility.map((c, i) => (
+                {product.compatibility.map((c: string, i: number) => (
                   <View key={i} style={styles.tag}>
                     <Text style={styles.tagText}>{c}</Text>
                   </View>
@@ -265,19 +265,19 @@ export default function ProductDetailScreen() {
             <Text style={[styles.sectionTitle, { textAlign: isAr ? "right" : "left" }]}>
               {isAr ? "المواصفات" : "Specifications"}
             </Text>
-            {[
+            {([
               { label: isAr ? "الماركة" : "Brand", value: product.brand },
               { label: isAr ? "الفئة" : "Category", value: product.category_id },
-              { label: isAr ? "SKU", value: product.sku },
+              { label: "SKU", value: product.sku },
               product.weight_kg ? { label: isAr ? "الوزن" : "Weight", value: `${product.weight_kg} kg` } : null,
               { label: isAr ? "المبيع" : "Sold", value: `${product.sold_count} ${isAr ? "قطعة" : "pcs"}` },
-            ].filter(Boolean).map((spec) => (
+            ] as const).filter((s): s is { label: string; value: string } => s !== null).map((spec) => (
               <View
-                key={spec!.label}
+                key={spec.label}
                 style={[styles.specRow, { flexDirection: isAr ? "row-reverse" : "row" }]}
               >
-                <Text style={styles.specLabel}>{spec!.label}</Text>
-                <Text style={styles.specValue}>{spec!.value}</Text>
+                <Text style={styles.specLabel}>{spec.label}</Text>
+                <Text style={styles.specValue}>{spec.value}</Text>
               </View>
             ))}
           </View>

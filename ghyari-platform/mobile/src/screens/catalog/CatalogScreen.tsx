@@ -124,11 +124,11 @@ export default function CatalogScreen() {
       {/* Car filter + Sort */}
       <View style={[styles.filterRow, { flexDirection: isAr ? "row-reverse" : "row" }]}>
         <TouchableOpacity
-          style={[styles.filterChip, (selectedCarBrand) && styles.filterChipActive]}
+          style={[styles.filterChip, !!selectedCarBrand && styles.filterChipActive]}
           onPress={() => setShowCarFilter(true)}
         >
           <Text style={styles.filterChipIcon}>🚗</Text>
-          <Text style={[styles.filterChipText, selectedCarBrand && styles.filterChipTextActive]}>
+          <Text style={[styles.filterChipText, !!selectedCarBrand && styles.filterChipTextActive]}>
             {selectedCarBrandName
               ? `${selectedCarBrandName}${selectedCarModelName ? ` · ${selectedCarModelName}` : ""}`
               : isAr ? "نوع سيارتك" : "Your Car"}

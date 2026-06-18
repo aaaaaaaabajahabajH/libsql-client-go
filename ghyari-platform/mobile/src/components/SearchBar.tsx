@@ -37,7 +37,6 @@ export default function SearchBar({ value, onChangeText, onSubmit, placeholder }
         autoCorrect={false}
         autoCapitalize="none"
         clearButtonMode="while-editing"
-        writingDirection={isAr ? "rtl" : "ltr"}
       />
       {value.length > 0 && Platform.OS !== "ios" && (
         <TouchableOpacity onPress={() => onChangeText("")} style={styles.clearBtn}>

@@ -18,7 +18,7 @@ import { fetchProducts, fetchCategories } from "../../api/client";
 import { colors, spacing, radius, typography } from "../../theme";
 import { useStore } from "../../store";
 import ProductCard from "../../components/ProductCard";
-import { RootStackParamList } from "../../types";
+import { Category, RootStackParamList } from "../../types";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 const { width } = Dimensions.get("window");
@@ -123,7 +123,7 @@ export default function HomeScreen() {
               {isAr ? "الفئات" : "Categories"}
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesRow}>
-              {categories.slice(0, 8).map((cat) => (
+              {categories.slice(0, 8).map((cat: Category) => (
                 <TouchableOpacity
                   key={cat.id}
                   style={styles.categoryChip}
