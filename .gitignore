@@ -14,3 +14,7 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 test.db
+
+# Frontend dependencies
+node_modules/
+ghyari-platform/frontend/node_modules/
