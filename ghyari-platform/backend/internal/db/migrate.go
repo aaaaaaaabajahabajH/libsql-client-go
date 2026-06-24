@@ -21,6 +21,9 @@ func Migrate(ctx context.Context, db *sql.DB) error {
 		{"create_orders", schemaOrders},
 		{"create_ai_radar", schemaAIRadar},
 		{"create_reviews", schemaReviews},
+		{"create_cart_items", schemaCartItems},
+		{"create_payment_columns", schemaPaymentColumns},
+		{"create_webhook_events", schemaWebhookEvents},
 		{"create_migrations_table", schemaMigrationsTable},
 	}
 
@@ -321,6 +324,33 @@ CREATE TABLE IF NOT EXISTS reviews (
 );
 
 CREATE INDEX IF NOT EXISTS idx_reviews_product ON reviews(product_id, is_active);
+`
+
+const schemaCartItems = `
+CREATE TABLE IF NOT EXISTS cart_items (
+	id         TEXT PRIMARY KEY,
+	user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	product_id TEXT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+	quantity   INTEGER NOT NULL DEFAULT 1 CHECK(quantity > 0),
+	added_at   TEXT DEFAULT (datetime('now')),
+	UNIQUE(user_id, product_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_cart_user ON cart_items(user_id);
+`
+
+const schemaPaymentColumns = `
+ALTER TABLE orders ADD COLUMN gateway_ref TEXT;
+`
+
+const schemaWebhookEvents = `
+CREATE TABLE IF NOT EXISTS webhook_events (
+	id               TEXT PRIMARY KEY,
+	idempotency_key  TEXT UNIQUE NOT NULL,
+	created_at       TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_webhook_idem ON webhook_events(idempotency_key);
 `
 
 const schemaMigrationsTable = `SELECT 1;` // already created above, placeholder

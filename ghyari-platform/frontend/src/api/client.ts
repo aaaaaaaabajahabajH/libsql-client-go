@@ -125,3 +125,47 @@ export const fetchDistributors = () =>
 // AI Radar
 export const submitDemandRequest = (payload: { query_raw: string; car_model_raw?: string; signal_type?: string }) =>
   api.post("/ai/requests", payload).catch(() => null); // silent fail
+
+// ── Orders ─────────────────────────────────────────────────────────────────
+
+export interface Order {
+  id: string;
+  status: string;
+  total_amount: number;
+  shipping_address: string;
+  payment_method?: string;
+  payment_status?: string;
+  created_at: string;
+}
+
+export const createOrder = (payload: { shipping_address: string; payment_method: string; notes?: string }) =>
+  api.post<{ order_id: string; status: string }>("/orders", payload).then((r) => r.data);
+
+export const fetchOrders = () =>
+  api.get<{ data: Order[] }>("/orders").then((r) => r.data.data ?? []);
+
+export const fetchOrder = (id: string) =>
+  api.get<{ data: Order }>(`/orders/${id}`).then((r) => r.data.data);
+
+export const cancelOrder = (id: string) =>
+  api.post(`/orders/${id}/cancel`).then((r) => r.data);
+
+// ── Payments ────────────────────────────────────────────────────────────────
+
+export interface PaymentInitResponse {
+  payment_url: string;
+  gateway_ref?: string;
+  session_id?: string;
+  amount: number;
+  currency: string;
+  order_id: string;
+}
+
+export const initiateNGenius = (orderId: string, currency = "AED") =>
+  api.post<PaymentInitResponse>("/payments/ngenius", { order_id: orderId, currency }).then((r) => r.data);
+
+export const initiateTabby = (orderId: string, currency = "AED") =>
+  api.post<PaymentInitResponse>("/payments/tabby", { order_id: orderId, currency }).then((r) => r.data);
+
+export const confirmCOD = (orderId: string) =>
+  api.post<{ order_id: string; message: string }>("/payments/cod", { order_id: orderId }).then((r) => r.data);

@@ -148,6 +148,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(database)
 	carHandler := handlers.NewCarHandler(database)
 	uploadHandler := handlers.NewUploadHandler(gcsClient)
+	paymentHandler := handlers.NewPaymentHandler(database)
 
 	// ── API v1 routes ─────────────────────────────────────────────────────────
 	v1 := router.Group("/api/v1")
@@ -195,6 +196,13 @@ func main() {
 		distributors.GET("/:id/catalog", distributorHandler.GetCatalog)
 	}
 
+	// Payment webhooks — public but HMAC-verified inside each handler
+	webhooks := v1.Group("/webhooks")
+	{
+		webhooks.POST("/ngenius", paymentHandler.NGeniusWebhook)
+		webhooks.POST("/tabby", paymentHandler.TabbyWebhook)
+	}
+
 	// Authenticated routes
 	protected := v1.Group("")
 	protected.Use(middleware.RequireAuth())
@@ -221,6 +229,14 @@ func main() {
 			orders.GET("", orderHandler.ListUserOrders)
 			orders.GET("/:id", orderHandler.GetOrder)
 			orders.POST("/:id/cancel", orderHandler.CancelOrder)
+		}
+
+		// Payments — authenticated initiation endpoints
+		payments := protected.Group("/payments")
+		{
+			payments.POST("/ngenius", paymentHandler.InitiateNGeniusPayment)
+			payments.POST("/tabby", paymentHandler.InitiateTabbySession)
+			payments.POST("/cod", paymentHandler.ConfirmCOD)
 		}
 
 		// AI Radar (public signal capture, private analytics)

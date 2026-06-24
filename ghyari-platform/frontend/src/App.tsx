@@ -2,9 +2,14 @@ import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
 import { motion } from "framer-motion";
+import { ShoppingCart } from "lucide-react";
 import HeroSection3D from "./components/HeroSection3D";
 import CatalogPage from "./pages/CatalogPage";
+import CartPage from "./pages/CartPage";
+import CheckoutPage from "./pages/CheckoutPage";
+import OrdersPage from "./pages/OrdersPage";
 import { colors } from "./theme/colors";
+import { useCartStore } from "./store/cart";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -54,6 +59,8 @@ const GlobalStyle = () => (
 
 // Navigation bar component
 function Navbar() {
+  const items = useCartStore((s) => s.items);
+  const cartCount = items.reduce((sum, i) => sum + i.quantity, 0);
   return (
     <nav
       dir="rtl"
@@ -137,24 +144,59 @@ function Navbar() {
         ))}
       </div>
 
-      {/* CTA */}
-      <motion.button
-        whileHover={{ scale: 1.04 }}
-        whileTap={{ scale: 0.97 }}
-        style={{
-          background: `linear-gradient(135deg, ${colors.orange[500]}, ${colors.orange.neon})`,
-          color: "#fff",
-          border: "none",
-          borderRadius: "10px",
-          padding: "10px 22px",
-          fontSize: "0.9rem",
-          fontWeight: 700,
-          cursor: "pointer",
-          fontFamily: "'Tajawal', sans-serif",
-        }}
-      >
-        ابحث عن قطعتك
-      </motion.button>
+      {/* Cart icon + CTA */}
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <Link
+          to="/cart"
+          style={{
+            position: "relative",
+            color: colors.text.secondary,
+            display: "flex",
+            alignItems: "center",
+            textDecoration: "none",
+          }}
+        >
+          <ShoppingCart size={22} />
+          {cartCount > 0 && (
+            <span
+              style={{
+                position: "absolute",
+                top: -8,
+                left: -8,
+                background: colors.orange[500],
+                color: "#fff",
+                borderRadius: "50%",
+                width: 18,
+                height: 18,
+                fontSize: 11,
+                fontWeight: 800,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {cartCount > 9 ? "9+" : cartCount}
+            </span>
+          )}
+        </Link>
+        <motion.button
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.97 }}
+          style={{
+            background: `linear-gradient(135deg, ${colors.orange[500]}, ${colors.orange.neon})`,
+            color: "#fff",
+            border: "none",
+            borderRadius: "10px",
+            padding: "10px 22px",
+            fontSize: "0.9rem",
+            fontWeight: 700,
+            cursor: "pointer",
+            fontFamily: "'Tajawal', sans-serif",
+          }}
+        >
+          ابحث عن قطعتك
+        </motion.button>
+      </div>
     </nav>
   );
 }
@@ -369,6 +411,10 @@ export default function App() {
           <Route path="/products" element={<CatalogPage />} />
           <Route path="/tuning" element={<CatalogPage />} />
           <Route path="/distributors" element={<div style={{ paddingTop: "80px", textAlign: "center", color: "#fff" }}>الموزعون - قريباً</div>} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/orders/:id" element={<OrdersPage />} />
         </Routes>
       </BrowserRouter>
       <Toaster
