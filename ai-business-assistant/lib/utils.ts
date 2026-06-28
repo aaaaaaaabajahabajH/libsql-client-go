@@ -1,26 +1,13 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
-export function cn(...inputs: ClassValue[]) {
+/**
+ * Merges Tailwind CSS classes without conflicts.
+ * Combines clsx (conditional logic) with tailwind-merge (deduplication).
+ *
+ * @example
+ * cn("px-4 py-2", isActive && "bg-primary", className)
+ */
+export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
-}
-
-export function formatDate(date: string | Date): string {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(date));
-}
-
-export function formatCurrency(amount: number, currency = "USD"): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-  }).format(amount);
-}
-
-export function truncate(str: string, length: number): string {
-  if (str.length <= length) return str;
-  return str.slice(0, length) + "...";
 }

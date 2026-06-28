@@ -1,124 +1,125 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[];
+/**
+ * Application-level TypeScript types.
+ * Keep domain types here; database row types live in types/database.ts.
+ */
 
-export interface Database {
-  public: {
-    Tables: {
-      profiles: {
-        Row: {
-          id: string;
-          email: string;
-          full_name: string | null;
-          avatar_url: string | null;
-          plan: "free" | "pro" | "enterprise";
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id: string;
-          email: string;
-          full_name?: string | null;
-          avatar_url?: string | null;
-          plan?: "free" | "pro" | "enterprise";
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          email?: string;
-          full_name?: string | null;
-          avatar_url?: string | null;
-          plan?: "free" | "pro" | "enterprise";
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      conversations: {
-        Row: {
-          id: string;
-          user_id: string;
-          title: string;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          title: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          title?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      messages: {
-        Row: {
-          id: string;
-          conversation_id: string;
-          role: "user" | "assistant";
-          content: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          conversation_id: string;
-          role: "user" | "assistant";
-          content: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          conversation_id?: string;
-          role?: "user" | "assistant";
-          content?: string;
-          created_at?: string;
-        };
-      };
-    };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
-    Enums: {
-      plan_type: "free" | "pro" | "enterprise";
-    };
-  };
-}
+import type { LucideIcon } from "lucide-react";
 
-export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
-export type Conversation =
-  Database["public"]["Tables"]["conversations"]["Row"];
-export type Message = Database["public"]["Tables"]["messages"]["Row"];
+import type { DbPlanType, DbToolType } from "./database";
 
-export interface PricingPlan {
-  name: string;
-  price: number;
-  interval: "month" | "year";
-  description: string;
-  features: string[];
-  cta: string;
-  highlighted: boolean;
-  badge?: string;
-}
+/* ─── Re-exports from database layer ──────────────────────── */
+
+export type { Database } from "./database";
+export type { DbPlanType as PlanType, DbToolType as ToolType } from "./database";
+
+/* ─── Navigation ───────────────────────────────────────────── */
 
 export interface NavItem {
   label: string;
   href: string;
-  icon?: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
+  badge?: string;
+  external?: boolean;
 }
 
-export interface StatsCard {
+export interface BreadcrumbItem {
+  label: string;
+  href?: string;
+}
+
+/* ─── Dashboard widgets ─────────────────────────────────────── */
+
+export interface StatsData {
   title: string;
   value: string;
   change: string;
   trend: "up" | "down" | "neutral";
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
+  iconColor: string;
+  iconBg: string;
 }
+
+export interface ActivityItem {
+  id: string;
+  tool: DbToolType;
+  title: string;
+  credits: number;
+  createdAt: string;
+}
+
+/* ─── AI Tools ──────────────────────────────────────────────── */
+
+export interface ToolConfig {
+  id: DbToolType;
+  label: string;
+  description: string;
+  icon: LucideIcon;
+  creditCost: number;
+  gradient: string;
+  badge?: string;
+}
+
+export interface ToolFormValues {
+  prompt: string;
+  [key: string]: string | number | boolean;
+}
+
+export interface ToolResult {
+  content: string;
+  creditsUsed: number;
+  generatedAt: string;
+}
+
+/* ─── Subscription / Pricing ────────────────────────────────── */
+
+export interface PlanFeature {
+  text: string;
+  included: boolean;
+}
+
+export interface PlanConfig {
+  id: DbPlanType;
+  name: string;
+  price: number;
+  interval: "month" | "year";
+  description: string;
+  credits: number;
+  features: PlanFeature[];
+  highlighted: boolean;
+  badge?: string;
+  stripePriceId?: string;
+}
+
+/* ─── Credits ───────────────────────────────────────────────── */
+
+export interface CreditsState {
+  balance: number;
+  totalUsed: number;
+  resetAt: string;
+  percentage: number;
+}
+
+/* ─── Auth ──────────────────────────────────────────────────── */
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  fullName: string | null;
+  avatarUrl: string | null;
+  plan: DbPlanType;
+}
+
+/* ─── API responses ─────────────────────────────────────────── */
+
+export type ActionResult<T = void> =
+  | { success: true; data: T }
+  | { success: false; error: string };
+
+export type AsyncActionResult<T = void> = Promise<ActionResult<T>>;
+
+/* ─── Generic helpers ───────────────────────────────────────── */
+
+export type Nullable<T> = T | null;
+export type Optional<T> = T | undefined;
+export type WithId<T> = T & { id: string };
+export type Prettify<T> = { [K in keyof T]: T[K] } & unknown;

@@ -1,7 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import type { Database } from "@/types";
 
+import type { Database } from "@/types/database";
+
+/**
+ * Server-side Supabase client for use in:
+ *  - Server Components
+ *  - Route Handlers (app/api/*)
+ *  - Server Actions (actions/*)
+ *
+ * Must be `await`-ed because `cookies()` is async in Next.js 15.
+ */
 export async function createClient() {
   const cookieStore = await cookies();
 
@@ -15,14 +24,15 @@ export async function createClient() {
         },
         setAll(cookiesToSet) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
           } catch {
-            // Ignore cookie errors in Server Components
+            // Silently ignore cookie mutations inside Server Components
+            // (read-only context). Route Handlers and Server Actions can write.
           }
         },
       },
-    }
+    },
   );
 }
