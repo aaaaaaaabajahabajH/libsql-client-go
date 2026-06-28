@@ -1,43 +1,52 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
-import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+import { ThemeProvider } from "@/components/common/theme-provider";
+import { APP_DESCRIPTION, APP_NAME, APP_URL } from "@/utils/constants";
+
+import "@/styles/globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+/* ─── Metadata ──────────────────────────────────────────────── */
 
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL ?? "https://aibusiness.app"
-  ),
+  metadataBase: new URL(APP_URL),
   title: {
-    default: "AI Business Assistant — Grow Faster with AI",
-    template: "%s | AI Business Assistant",
+    default: `${APP_NAME} — Grow Faster with AI`,
+    template: `%s | ${APP_NAME}`,
   },
-  description:
-    "Generate content, write emails, create invoices, translate text, and more with AI. Save hours daily and scale your business.",
+  description: APP_DESCRIPTION,
   keywords: [
     "AI business tools",
     "content generation",
-    "email writer",
-    "AI assistant",
-    "business automation",
+    "AI writing assistant",
     "social media generator",
+    "email writer",
     "invoice generator",
+    "blog writer",
+    "AI translator",
+    "SaaS",
+    "productivity",
   ],
-  authors: [{ name: "AI Business Assistant" }],
+  authors: [{ name: APP_NAME, url: APP_URL }],
+  creator: APP_NAME,
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: process.env.NEXT_PUBLIC_APP_URL,
-    title: "AI Business Assistant — Grow Faster with AI",
-    description:
-      "Generate content, write emails, create invoices, translate text, and more with AI.",
-    siteName: "AI Business Assistant",
+    url: APP_URL,
+    siteName: APP_NAME,
+    title: `${APP_NAME} — Grow Faster with AI`,
+    description: APP_DESCRIPTION,
   },
   twitter: {
     card: "summary_large_image",
-    title: "AI Business Assistant — Grow Faster with AI",
-    description:
-      "Generate content, write emails, create invoices and more with AI.",
+    title: `${APP_NAME} — Grow Faster with AI`,
+    description: APP_DESCRIPTION,
   },
   robots: {
     index: true,
@@ -52,6 +61,17 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0e1a" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+};
+
+/* ─── Root Layout ───────────────────────────────────────────── */
+
 export default function RootLayout({
   children,
 }: {
@@ -60,7 +80,14 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
-        {children}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

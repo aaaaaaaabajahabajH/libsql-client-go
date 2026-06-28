@@ -1,0 +1,189 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────────────────────
+   Design Tokens — Light Theme (default)
+   All values are HSL channels without the hsl() wrapper so
+   Tailwind can build opacity variants: bg-primary/50 etc.
+───────────────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    /* Core palette */
+    --background:        0   0%  100%;
+    --foreground:      222  47%   11%;
+
+    /* Surface layers */
+    --card:              0   0%  100%;
+    --card-foreground: 222  47%   11%;
+    --popover:           0   0%  100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Brand */
+    --primary:         262  80%   55%;
+    --primary-foreground: 0   0%  100%;
+
+    /* Secondary / muted */
+    --secondary:       220  14%   96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted:           220  14%   96%;
+    --muted-foreground: 220   9%   46%;
+
+    /* Accent */
+    --accent:          220  14%   96%;
+    --accent-foreground: 222 47%  11%;
+
+    /* Semantic */
+    --destructive:       0  84%   60%;
+    --destructive-foreground: 0 0% 100%;
+    --success:         142  72%   29%;
+    --success-foreground: 0   0%  100%;
+    --warning:          38  92%   50%;
+    --warning-foreground: 0  0%  100%;
+
+    /* Form chrome */
+    --border:          220  13%   91%;
+    --input:           220  13%   91%;
+    --ring:            262  80%   55%;
+
+    /* Sidebar — intentionally darker than page background */
+    --sidebar:         222  47%    8%;
+    --sidebar-foreground: 220 14% 96%;
+    --sidebar-border:  222  47%   14%;
+    --sidebar-accent:  262  80%   55%;
+    --sidebar-accent-foreground: 0 0% 100%;
+
+    /* Geometry */
+    --radius: 0.625rem;
+  }
+
+/* ─────────────────────────────────────────────────────────────
+   Design Tokens — Dark Theme
+───────────────────────────────────────────────────────────── */
+  .dark {
+    --background:      222  47%    5%;
+    --foreground:      210  40%   98%;
+
+    --card:            222  47%    7%;
+    --card-foreground: 210  40%   98%;
+    --popover:         222  47%    7%;
+    --popover-foreground: 210 40%  98%;
+
+    --primary:         262  80%   65%;
+    --primary-foreground: 222 47%  5%;
+
+    --secondary:       217  33%   17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted:           217  33%   17%;
+    --muted-foreground: 215  20%   65%;
+
+    --accent:          217  33%   17%;
+    --accent-foreground: 210 40%  98%;
+
+    --destructive:       0  63%   31%;
+    --destructive-foreground: 210 40% 98%;
+    --success:         142  72%   29%;
+    --success-foreground: 0   0%  100%;
+    --warning:          38  92%   50%;
+    --warning-foreground: 0  0%   100%;
+
+    --border:          217  33%   17%;
+    --input:           217  33%   17%;
+    --ring:            262  80%   65%;
+
+    --sidebar:         222  47%    3%;
+    --sidebar-foreground: 220 14%  96%;
+    --sidebar-border:  222  47%   10%;
+    --sidebar-accent:  262  80%   65%;
+    --sidebar-accent-foreground: 0 0% 100%;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Base resets
+───────────────────────────────────────────────────────────── */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+    min-height: 100dvh;
+  }
+
+  /* Focus rings — visible only for keyboard navigation */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Scrollbar — subtle across the app */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-border;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/40;
+  }
+
+  /* Selection */
+  ::selection {
+    @apply bg-primary/20 text-foreground;
+  }
+
+  /* Typography scale */
+  h1 { @apply scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl; }
+  h2 { @apply scroll-m-20 text-3xl font-semibold tracking-tight; }
+  h3 { @apply scroll-m-20 text-2xl font-semibold tracking-tight; }
+  h4 { @apply scroll-m-20 text-xl font-semibold tracking-tight; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Utility classes
+───────────────────────────────────────────────────────────── */
+@layer utilities {
+  /* Skeleton shimmer — used by loading skeletons */
+  .skeleton {
+    @apply animate-pulse rounded-md bg-muted;
+  }
+
+  /* Gradient text helper */
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary to-violet-500 bg-clip-text text-transparent;
+  }
+
+  /* Glow effect behind primary elements */
+  .glow {
+    box-shadow: 0 0 40px -10px hsl(var(--primary) / 0.4);
+  }
+
+  /* Sidebar-aware layout grid */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto 1fr;
+    min-height: 100dvh;
+  }
+
+  /* Frosted glass card */
+  .glass {
+    @apply border border-white/10 bg-white/5 backdrop-blur-md;
+  }
+}
