@@ -1,7 +1,10 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { createClient } from "@/lib/supabase/server";
 import type { AsyncActionResult } from "@/types";
 
 /* ─── Validation schemas ─────────────────────────────────────── */
@@ -34,6 +37,9 @@ export const RegisterSchema = z
       .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
       .regex(/[0-9]/, "Password must contain at least one number"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
+    acceptTerms: z.literal(true, {
+      errorMap: () => ({ message: "You must accept the terms and conditions" }),
+    }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
@@ -68,33 +74,116 @@ export type RegisterFormValues = z.infer<typeof RegisterSchema>;
 export type ForgotPasswordFormValues = z.infer<typeof ForgotPasswordSchema>;
 export type ResetPasswordFormValues = z.infer<typeof ResetPasswordSchema>;
 
-/* ─── Server action signatures ───────────────────────────────── */
-// Implementations added in Milestone 3: Authentication
+/* ─── Server actions ─────────────────────────────────────────── */
 
 export async function loginAction(
-  _values: LoginFormValues,
+  values: LoginFormValues,
 ): AsyncActionResult<{ redirectTo: string }> {
-  throw new Error("loginAction: implemented in Milestone 3");
+  const parsed = LoginSchema.safeParse(values);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.errors[0].message };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({
+    email: parsed.data.email,
+    password: parsed.data.password,
+  });
+
+  if (error) {
+    if (error.message.includes("Invalid login credentials")) {
+      return { success: false, error: "Invalid email or password." };
+    }
+    if (error.message.includes("Email not confirmed")) {
+      return {
+        success: false,
+        error: "Please verify your email address before signing in.",
+      };
+    }
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/", "layout");
+  return { success: true, data: { redirectTo: "/dashboard" } };
 }
 
 export async function registerAction(
-  _values: RegisterFormValues,
+  values: RegisterFormValues,
 ): AsyncActionResult {
-  throw new Error("registerAction: implemented in Milestone 3");
+  const parsed = RegisterSchema.safeParse(values);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.errors[0].message };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signUp({
+    email: parsed.data.email,
+    password: parsed.data.password,
+    options: {
+      data: { full_name: parsed.data.fullName },
+    },
+  });
+
+  if (error) {
+    if (error.message.includes("User already registered")) {
+      return {
+        success: false,
+        error: "An account with this email already exists.",
+      };
+    }
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, data: undefined };
 }
 
-export async function logoutAction(): AsyncActionResult {
-  throw new Error("logoutAction: implemented in Milestone 3");
+export async function logoutAction(): Promise<void> {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  revalidatePath("/", "layout");
+  redirect("/login");
 }
 
 export async function forgotPasswordAction(
-  _values: ForgotPasswordFormValues,
+  values: ForgotPasswordFormValues,
 ): AsyncActionResult {
-  throw new Error("forgotPasswordAction: implemented in Milestone 3");
+  const parsed = ForgotPasswordSchema.safeParse(values);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.errors[0].message };
+  }
+
+  const supabase = await createClient();
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+  const { error } = await supabase.auth.resetPasswordForEmail(
+    parsed.data.email,
+    { redirectTo: `${siteUrl}/reset-password` },
+  );
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, data: undefined };
 }
 
 export async function resetPasswordAction(
-  _values: ResetPasswordFormValues,
+  values: ResetPasswordFormValues,
 ): AsyncActionResult {
-  throw new Error("resetPasswordAction: implemented in Milestone 3");
+  const parsed = ResetPasswordSchema.safeParse(values);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.errors[0].message };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({
+    password: parsed.data.password,
+  });
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, data: undefined };
 }

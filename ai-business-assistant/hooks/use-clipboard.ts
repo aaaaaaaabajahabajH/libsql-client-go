@@ -40,8 +40,7 @@ export function useClipboard(resetDelay: number = 2_000): UseClipboardReturn {
       }
 
       setCopied(true);
-      const timer = setTimeout(reset, resetDelay);
-      return () => clearTimeout(timer);
+      setTimeout(reset, resetDelay);
     },
     [reset, resetDelay],
   );

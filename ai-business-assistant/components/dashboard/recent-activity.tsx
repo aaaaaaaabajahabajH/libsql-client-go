@@ -1,7 +1,7 @@
 import { FileText, Mail, Share2, Receipt, PenTool, Globe, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDate } from "@/lib/utils";
+import { formatDate } from "@/utils/format";
 
 const toolIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   "social-media": Share2,

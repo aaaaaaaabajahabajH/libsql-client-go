@@ -1,50 +1,42 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
 import {
-  loginAction,
-  LoginSchema,
-  type LoginFormValues,
+  forgotPasswordAction,
+  ForgotPasswordSchema,
+  type ForgotPasswordFormValues,
 } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PasswordInput } from "@/components/ui/password-input";
 import { useToast } from "@/hooks/use-toast";
 
-export function LoginForm() {
-  const router = useRouter();
+export function ForgotPasswordForm() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormValues>({
-    resolver: zodResolver(LoginSchema),
+  } = useForm<ForgotPasswordFormValues>({
+    resolver: zodResolver(ForgotPasswordSchema),
   });
 
-  async function onSubmit(values: LoginFormValues) {
+  async function onSubmit(values: ForgotPasswordFormValues) {
     setIsSubmitting(true);
     try {
-      const result = await loginAction(values);
+      const result = await forgotPasswordAction(values);
       if (result.success) {
-        toast({
-          title: "Welcome back!",
-          description: "You have been signed in successfully.",
-        });
-        router.push(result.data.redirectTo);
-        router.refresh();
+        setIsSuccess(true);
       } else {
         toast({
-          title: "Sign in failed",
+          title: "Request failed",
           description: result.error,
           variant: "destructive",
         });
@@ -52,6 +44,24 @@ export function LoginForm() {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  if (isSuccess) {
+    return (
+      <div className="flex animate-fade-in-scale flex-col items-center gap-5 py-6 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 ring-8 ring-primary/5">
+          <CheckCircle2 className="h-7 w-7 text-primary" />
+        </div>
+        <div className="space-y-1.5">
+          <h3 className="font-semibold">Check your inbox</h3>
+          <p className="text-sm text-muted-foreground">
+            If an account exists for that email address, we&apos;ve sent a
+            password reset link. Check your spam folder if you don&apos;t see
+            it within a few minutes.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -74,39 +84,14 @@ export function LoginForm() {
         )}
       </div>
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="password">Password</Label>
-          <Link
-            href="/forgot-password"
-            className="text-xs text-muted-foreground transition-colors hover:text-primary"
-          >
-            Forgot password?
-          </Link>
-        </div>
-        <PasswordInput
-          id="password"
-          placeholder="••••••••"
-          autoComplete="current-password"
-          aria-invalid={!!errors.password}
-          disabled={isSubmitting}
-          {...register("password")}
-        />
-        {errors.password && (
-          <p className="text-sm text-destructive" role="alert">
-            {errors.password.message}
-          </p>
-        )}
-      </div>
-
       <Button type="submit" className="w-full" disabled={isSubmitting}>
         {isSubmitting ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Signing in…
+            Sending link…
           </>
         ) : (
-          "Sign in"
+          "Send reset link"
         )}
       </Button>
     </form>
