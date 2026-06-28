@@ -1,14 +1,15 @@
 /**
  * Credits Service — manages the credit ledger for each user.
  *
- * All credit mutations go through the `deduct_credits` database function
- * which uses a row-level lock to prevent race conditions (concurrent calls).
+ * All credit mutations go through the deduct_credits() and
+ * reset_monthly_credits() Postgres functions which use row-level
+ * locks to prevent race conditions under concurrent requests.
  *
- * Implementation: Milestone 11
+ * DB operations (getUserCredits, deductCredits, resetMonthlyCredits)
+ * are implemented in Milestone 11 once the AI tool pages are in place.
  */
 
-import type { CreditsState, PlanType } from "@/types";
-import { PLAN_CREDITS } from "@/utils/constants";
+import type { CreditsState } from "@/types";
 
 /* ─── Interfaces ─────────────────────────────────────────────── */
 
@@ -18,16 +19,23 @@ export interface CreditCheckResult {
   required: number;
 }
 
-/* ─── Pure helpers (no I/O — safe to use anywhere) ─────────── */
+/* ─── Pure helpers (no I/O — safe to call anywhere) ─────────── */
 
+/**
+ * Builds a CreditsState from raw DB values.
+ * Uses monthly_allowance (stored per-user) instead of deriving from plan,
+ * so it remains correct after mid-cycle plan changes.
+ */
 export function buildCreditsState(
   balance: number,
   totalUsed: number,
+  monthlyAllowance: number,
   resetAt: string,
-  plan: PlanType,
 ): CreditsState {
-  const total = PLAN_CREDITS[plan];
-  const percentage = Math.min(Math.round((totalUsed / total) * 100), 100);
+  const percentage =
+    monthlyAllowance > 0
+      ? Math.min(Math.round((totalUsed / monthlyAllowance) * 100), 100)
+      : 0;
 
   return { balance, totalUsed, resetAt, percentage };
 }
@@ -44,7 +52,7 @@ export function formatCreditsDisplay(balance: number): string {
   return String(balance);
 }
 
-/* ─── Database-backed operations (stub — implemented in Milestone 11) */
+/* ─── Database-backed operations (implemented in Milestone 11) ─ */
 
 export async function getUserCredits(
   _userId: string,
@@ -59,6 +67,9 @@ export async function deductCredits(
   throw new Error("deductCredits: implemented in Milestone 11");
 }
 
-export async function resetMonthlyCredits(_userId: string): Promise<void> {
+export async function resetMonthlyCredits(
+  _userId: string,
+  _newAllowance?: number,
+): Promise<void> {
   throw new Error("resetMonthlyCredits: implemented in Milestone 11");
 }

@@ -1,7 +1,7 @@
 /**
  * Supabase Database type definitions.
- * These mirror the SQL schema in supabase/migrations/001_schema.sql exactly.
- * Never use `any` — add proper shapes here when the schema evolves.
+ * These mirror the SQL schema in supabase/migrations/001_initial_schema.sql exactly.
+ * Re-generate with: supabase gen types typescript --linked > types/database.ts
  */
 
 export type Json =
@@ -16,11 +16,15 @@ export type Json =
 
 export type DbPlanType = "free" | "starter" | "pro" | "enterprise";
 
+/** Mirrors Stripe subscription status values (US spelling: "canceled"). */
 export type DbSubscriptionStatus =
   | "active"
-  | "cancelled"
+  | "canceled"
+  | "incomplete"
+  | "incomplete_expired"
   | "past_due"
-  | "trialing";
+  | "trialing"
+  | "unpaid";
 
 export type DbToolType =
   | "social-media"
@@ -51,6 +55,7 @@ export interface SubscriptionRow {
   status: DbSubscriptionStatus;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
+  stripe_price_id: string | null;
   current_period_start: string | null;
   current_period_end: string | null;
   cancel_at_period_end: boolean;
@@ -62,20 +67,22 @@ export interface CreditsRow {
   id: string;
   user_id: string;
   balance: number;
+  monthly_allowance: number;
   total_used: number;
   reset_at: string;
   created_at: string;
   updated_at: string;
 }
 
+/** Immutable append-only log entry. input stores raw form values as JSONB. */
 export interface HistoryRow {
   id: string;
   user_id: string;
   tool: DbToolType;
   title: string;
-  prompt: string;
+  input: Json;
   output: string;
-  credits: number;
+  credits_used: number;
   created_at: string;
 }
 
@@ -87,14 +94,15 @@ export interface SavedDocumentRow {
   title: string;
   content: string;
   tags: string[];
+  is_favorite: boolean;
   created_at: string;
   updated_at: string;
 }
 
 /* ─── Insert / Update helpers ──────────────────────────────── */
 
-export type ProfileInsert = Omit<ProfileRow, "created_at" | "updated_at"> &
-  Partial<Pick<ProfileRow, "plan" | "company" | "website">>;
+export type ProfileInsert = Pick<ProfileRow, "id" | "email"> &
+  Partial<Pick<ProfileRow, "full_name" | "avatar_url" | "company" | "website" | "plan">>;
 
 export type ProfileUpdate = Partial<
   Pick<ProfileRow, "full_name" | "avatar_url" | "company" | "website" | "plan">
@@ -106,13 +114,13 @@ export type SavedDocumentInsert = Omit<
   SavedDocumentRow,
   "id" | "created_at" | "updated_at"
 > &
-  Partial<Pick<SavedDocumentRow, "history_id" | "tags">>;
+  Partial<Pick<SavedDocumentRow, "history_id" | "tags" | "is_favorite">>;
 
 export type SavedDocumentUpdate = Partial<
-  Pick<SavedDocumentRow, "title" | "content" | "tags">
+  Pick<SavedDocumentRow, "title" | "content" | "tags" | "is_favorite">
 >;
 
-/* ─── Full Database interface (for createClient generics) ──── */
+/* ─── Full Database interface (for createClient<Database> generics) ── */
 
 export interface Database {
   public: {
@@ -132,6 +140,7 @@ export interface Database {
             | "status"
             | "stripe_customer_id"
             | "stripe_subscription_id"
+            | "stripe_price_id"
             | "current_period_start"
             | "current_period_end"
             | "cancel_at_period_end"
@@ -141,7 +150,9 @@ export interface Database {
       credits: {
         Row: CreditsRow;
         Insert: Omit<CreditsRow, "id" | "created_at" | "updated_at">;
-        Update: Partial<Pick<CreditsRow, "balance" | "total_used" | "reset_at">>;
+        Update: Partial<
+          Pick<CreditsRow, "balance" | "monthly_allowance" | "total_used" | "reset_at">
+        >;
       };
       history: {
         Row: HistoryRow;
@@ -154,11 +165,27 @@ export interface Database {
         Update: SavedDocumentUpdate;
       };
     };
-    Views: Record<string, never>;
+    Views: {
+      plan_limits: {
+        Row: {
+          plan: DbPlanType;
+          monthly_credits: number;
+          history_retention_days: number | null;
+        };
+      };
+    };
     Functions: {
       deduct_credits: {
         Args: { p_user_id: string; p_amount: number };
         Returns: boolean;
+      };
+      reset_monthly_credits: {
+        Args: { p_user_id: string; p_new_allowance?: number };
+        Returns: void;
+      };
+      update_user_plan: {
+        Args: { p_user_id: string; p_plan: DbPlanType };
+        Returns: void;
       };
     };
     Enums: {
