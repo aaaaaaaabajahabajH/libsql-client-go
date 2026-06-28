@@ -50,3 +50,4 @@ export {
   type ToastActionElement,
   type ToastProps,
 } from "./toast";
+export { PasswordInput } from "./password-input";

@@ -1,31 +1,35 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+
+import { RegisterForm } from "@/components/auth/register-form";
 
 export const metadata: Metadata = {
-  title: "Create Account",
-  description:
-    "Create your free AI Business Assistant account and get 50 credits.",
+  title: "Create account",
+  description: "Create your free AI Business Assistant account and get 50 credits.",
   robots: { index: false, follow: false },
 };
 
-/**
- * Register page — form implemented in Milestone 3.
- */
 export default function RegisterPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">Create an account</h1>
-          <p className="text-sm text-muted-foreground">
-            Get started free — 50 credits included, no card required
-          </p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-6">
-          <p className="text-sm text-muted-foreground">
-            Auth form — Milestone 3
-          </p>
-        </div>
+    <div className="space-y-6">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold tracking-tight">Create an account</h1>
+        <p className="text-muted-foreground">
+          Start free — no credit card required
+        </p>
       </div>
-    </main>
+
+      <RegisterForm />
+
+      <p className="text-center text-sm text-muted-foreground">
+        Already have an account?{" "}
+        <Link
+          href="/login"
+          className="font-medium text-primary transition-colors hover:underline"
+        >
+          Sign in
+        </Link>
+      </p>
+    </div>
   );
 }

@@ -1,30 +1,35 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+
+import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 
 export const metadata: Metadata = {
-  title: "Forgot Password",
+  title: "Forgot password",
   description: "Reset your AI Business Assistant account password.",
   robots: { index: false, follow: false },
 };
 
-/**
- * Forgot password page — form implemented in Milestone 3.
- */
 export default function ForgotPasswordPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">Forgot password?</h1>
-          <p className="text-sm text-muted-foreground">
-            Enter your email and we&apos;ll send you a reset link.
-          </p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-6">
-          <p className="text-sm text-muted-foreground">
-            Auth form — Milestone 3
-          </p>
-        </div>
+    <div className="space-y-6">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold tracking-tight">Forgot password?</h1>
+        <p className="text-muted-foreground">
+          Enter your email and we&apos;ll send you a reset link
+        </p>
       </div>
-    </main>
+
+      <ForgotPasswordForm />
+
+      <p className="text-center text-sm text-muted-foreground">
+        Remember your password?{" "}
+        <Link
+          href="/login"
+          className="font-medium text-primary transition-colors hover:underline"
+        >
+          Back to sign in
+        </Link>
+      </p>
+    </div>
   );
 }
