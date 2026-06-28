@@ -1,85 +1,120 @@
 # AI Business Assistant
 
-A production-ready AI SaaS built with Next.js 15, Supabase, Shadcn UI, and Tailwind CSS.
+A production-ready AI SaaS that gives businesses superpowers — generate content,
+write emails, build invoices, translate text, and more with a single credit-based
+subscription.
 
 ## Stack
 
-- **Framework**: Next.js 15 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS + Shadcn UI
-- **Auth & Database**: Supabase
-- **Icons**: Lucide React
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 15 (App Router) |
+| Language | TypeScript 5 (strict) |
+| Styling | Tailwind CSS + shadcn/ui |
+| Auth & DB | Supabase (PostgreSQL) |
+| Forms | React Hook Form + Zod |
+| Server Logic | Next.js Server Actions |
+| Themes | next-themes (dark / light) |
+| Icons | Lucide React |
+
+## Prerequisites
+
+- Node.js ≥ 20
+- A [Supabase](https://supabase.com) project
 
 ## Quick Start
 
 ```bash
-# Install dependencies
+# 1. Install dependencies
 npm install
 
-# Copy environment variables
+# 2. Configure environment
 cp .env.local.example .env.local
-# Fill in your Supabase URL and anon key
+# → Fill in NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-# Run development server
+# 3. Run the database migration
+# Open your Supabase project → SQL Editor → paste supabase/migrations/001_schema.sql
+
+# 4. Start the dev server
 npm run dev
 ```
 
-## Environment Variables
+Open [http://localhost:3000](http://localhost:3000).
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
+## Scripts
 
-## Database Setup
-
-Run the migration in your Supabase SQL editor:
-
-```
-supabase/migrations/001_initial_schema.sql
-```
+| Command | Description |
+|---|---|
+| `npm run dev` | Start dev server with Turbopack |
+| `npm run build` | Production build |
+| `npm run start` | Start production server |
+| `npm run lint` | Run ESLint |
+| `npm run lint:fix` | Auto-fix lint errors |
+| `npm run format` | Format with Prettier |
+| `npm run type-check` | Run TypeScript compiler check |
+| `npm run validate` | type-check + lint + format check |
 
 ## Project Structure
 
 ```
-app/
-  (auth)/login          # Login page
-  (auth)/register       # Register page
-  (dashboard)/          # Protected dashboard layout
-    dashboard/          # Main dashboard
-    profile/            # User profile
-    settings/           # App settings
-  pricing/              # Pricing page
-  page.tsx              # Landing page
-
-components/
-  ui/                   # Shadcn UI primitives
-  auth/                 # Login/Register forms
-  dashboard/            # Sidebar, Header, Stats, Tools grid
-  landing/              # Hero, Features, Testimonials, CTA
-  layout/               # Navbar, Footer
-
-lib/
-  supabase/client.ts    # Browser Supabase client
-  supabase/server.ts    # Server Supabase client
-  utils.ts              # Shared utilities
-
-supabase/
-  migrations/           # SQL migrations
-
-types/
-  index.ts              # TypeScript types + Database schema
+ai-business-assistant/
+├── app/                    # Next.js App Router
+│   ├── (auth)/             # Unauthenticated route group
+│   │   ├── login/
+│   │   ├── register/
+│   │   ├── forgot-password/
+│   │   └── reset-password/
+│   ├── (dashboard)/        # Authenticated route group
+│   │   ├── dashboard/
+│   │   ├── profile/
+│   │   ├── settings/
+│   │   └── tools/
+│   │       ├── social-media/
+│   │       ├── product-description/
+│   │       ├── blog-writer/
+│   │       ├── email-writer/
+│   │       ├── invoice-generator/
+│   │       └── translator/
+│   ├── pricing/
+│   ├── layout.tsx
+│   ├── page.tsx
+│   ├── sitemap.ts
+│   ├── robots.ts
+│   └── manifest.ts
+├── actions/                # Next.js Server Actions
+├── components/
+│   ├── ui/                 # shadcn/ui primitives
+│   ├── auth/               # Auth-specific components
+│   ├── dashboard/          # Dashboard layout components
+│   ├── landing/            # Landing page sections
+│   ├── tools/              # AI tool components
+│   └── shared/             # Globally shared components
+├── hooks/                  # Custom React hooks
+├── lib/
+│   ├── supabase/           # Supabase client factory
+│   └── utils.ts            # cn() and other utilities
+├── services/               # Business logic (thin wrappers)
+├── styles/
+│   └── globals.css
+├── supabase/
+│   └── migrations/
+├── types/
+│   ├── database.ts         # Supabase generated types
+│   └── index.ts            # App-level types
+└── utils/                  # Pure utility functions
 ```
 
-## Pages
+## Plans
 
-| Route | Description |
-|-------|-------------|
-| `/` | Landing page |
-| `/login` | Sign in |
-| `/register` | Create account |
-| `/dashboard` | Main dashboard |
-| `/dashboard/profile` | User profile |
-| `/dashboard/settings` | Settings |
-| `/pricing` | Pricing plans |
+| | Free | Starter | Pro |
+|---|---|---|---|
+| Price | $0 | $19/mo | $49/mo |
+| Credits | 50 | 1,000 | 5,000 |
+| History | 7 days | 90 days | Unlimited |
+| Tools | All 6 | All 6 | All 6 |
+| Save docs | — | ✓ | ✓ |
+| API access | — | — | ✓ |
+
+## License
+
+MIT
