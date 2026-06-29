@@ -1,9 +1,11 @@
-/**
- * Barrel export for components/landing/.
- * Landing page section components — implemented in Milestone 6.
- */
-
-export { CTA } from "./cta";
-export { Features } from "./features";
+export { LandingNavbar } from "./navbar";
 export { Hero } from "./hero";
+export { SocialProof } from "./social-proof";
+export { Features } from "./features";
+export { HowItWorks } from "./how-it-works";
+export { DashboardPreview } from "./dashboard-preview";
 export { Testimonials } from "./testimonials";
+export { PricingPreview } from "./pricing-preview";
+export { FAQ } from "./faq";
+export { CTA } from "./cta";
+export { Footer } from "./footer";
