@@ -51,3 +51,16 @@ export {
   type ToastProps,
 } from "./toast";
 export { PasswordInput } from "./password-input";
+export {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetOverlay,
+  SheetPortal,
+  SheetTitle,
+  SheetTrigger,
+} from "./sheet";
+export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./tooltip";
