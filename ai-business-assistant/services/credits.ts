@@ -1,14 +1,5 @@
-/**
- * Credits Service — manages the credit ledger for each user.
- *
- * All credit mutations go through the deduct_credits() and
- * reset_monthly_credits() Postgres functions which use row-level
- * locks to prevent race conditions under concurrent requests.
- *
- * DB operations (getUserCredits, deductCredits, resetMonthlyCredits)
- * are implemented in Milestone 11 once the AI tool pages are in place.
- */
-
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { CreditsRow } from "@/types/database";
 import type { CreditsState } from "@/types";
 
 /* ─── Interfaces ─────────────────────────────────────────────── */
@@ -21,11 +12,6 @@ export interface CreditCheckResult {
 
 /* ─── Pure helpers (no I/O — safe to call anywhere) ─────────── */
 
-/**
- * Builds a CreditsState from raw DB values.
- * Uses monthly_allowance (stored per-user) instead of deriving from plan,
- * so it remains correct after mid-cycle plan changes.
- */
 export function buildCreditsState(
   balance: number,
   totalUsed: number,
@@ -48,28 +34,58 @@ export function hasSufficientCredits(
 }
 
 export function formatCreditsDisplay(balance: number): string {
+  if (balance >= 999_999) return "∞";
   if (balance >= 1_000) return `${(balance / 1_000).toFixed(1)}k`;
   return String(balance);
 }
 
-/* ─── Database-backed operations (implemented in Milestone 11) ─ */
+/* ─── Database-backed operations ────────────────────────────── */
 
-export async function getUserCredits(
-  _userId: string,
-): Promise<CreditsState | null> {
-  throw new Error("getUserCredits: implemented in Milestone 11");
+export async function getUserCredits(userId: string): Promise<CreditsState | null> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("credits")
+    .select("*")
+    .eq("user_id", userId)
+    .single<CreditsRow>();
+
+  if (!data) return null;
+
+  return buildCreditsState(
+    data.balance,
+    data.total_used,
+    data.monthly_allowance,
+    data.reset_at,
+  );
 }
 
-export async function deductCredits(
-  _userId: string,
-  _amount: number,
-): Promise<boolean> {
-  throw new Error("deductCredits: implemented in Milestone 11");
+export async function getUserCreditsRow(userId: string): Promise<CreditsRow | null> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("credits")
+    .select("*")
+    .eq("user_id", userId)
+    .single<CreditsRow>();
+
+  return data ?? null;
 }
 
-export async function resetMonthlyCredits(
-  _userId: string,
-  _newAllowance?: number,
-): Promise<void> {
-  throw new Error("resetMonthlyCredits: implemented in Milestone 11");
+export async function deductCredits(userId: string, amount: number): Promise<boolean> {
+  const admin = createAdminClient();
+  const { data } = await admin.rpc(
+    "deduct_credits",
+    { p_user_id: userId, p_amount: amount } as unknown as { p_user_id: string; p_amount: number },
+  );
+  return data === true;
+}
+
+export async function resetMonthlyCredits(userId: string, newAllowance?: number): Promise<void> {
+  const admin = createAdminClient();
+  await admin.rpc(
+    "reset_monthly_credits",
+    {
+      p_user_id: userId,
+      ...(newAllowance !== undefined && { p_new_allowance: newAllowance }),
+    } as unknown as { p_user_id: string; p_new_allowance?: number },
+  );
 }
