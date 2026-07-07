@@ -31,10 +31,10 @@ export const TOOL_CREDIT_COSTS = {
 /* ─── Plan credit allocations ───────────────────────────────── */
 
 export const PLAN_CREDITS = {
-  free: 50,
-  starter: 1_000,
-  pro: 5_000,
-  enterprise: 20_000,
+  free: 20,
+  starter: 500,
+  pro: 999_999,
+  enterprise: 999_999,
 } as const satisfies Record<PlanConfig["id"], number>;
 
 /* ─── Plan history retention (days; null = unlimited) ───────── */
@@ -113,7 +113,7 @@ export const PLAN_CONFIGS: PlanConfig[] = [
     credits: PLAN_CREDITS.free,
     highlighted: false,
     features: [
-      { text: "50 credits / month", included: true },
+      { text: "20 credits / month", included: true },
       { text: "All 6 AI tools", included: true },
       { text: "7-day history", included: true },
       { text: "Copy & download outputs", included: true },
@@ -125,15 +125,15 @@ export const PLAN_CONFIGS: PlanConfig[] = [
   {
     id: "starter",
     name: "Starter",
-    price: 19,
+    price: 12,
     interval: "month",
     description: "For solopreneurs and small teams.",
     credits: PLAN_CREDITS.starter,
     highlighted: true,
     badge: "Most Popular",
-    stripePriceId: process.env.STRIPE_STARTER_PRICE_ID,
+    stripePriceId: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID,
     features: [
-      { text: "1,000 credits / month", included: true },
+      { text: "500 credits / month", included: true },
       { text: "All 6 AI tools", included: true },
       { text: "90-day history", included: true },
       { text: "Copy & download outputs", included: true },
@@ -145,14 +145,14 @@ export const PLAN_CONFIGS: PlanConfig[] = [
   {
     id: "pro",
     name: "Pro",
-    price: 49,
+    price: 25,
     interval: "month",
     description: "For growing businesses and agencies.",
     credits: PLAN_CREDITS.pro,
     highlighted: false,
-    stripePriceId: process.env.STRIPE_PRO_PRICE_ID,
+    stripePriceId: process.env.STRIPE_PRO_MONTHLY_PRICE_ID,
     features: [
-      { text: "5,000 credits / month", included: true },
+      { text: "Unlimited credits / month", included: true },
       { text: "All 6 AI tools", included: true },
       { text: "Unlimited history", included: true },
       { text: "Copy & download outputs", included: true },

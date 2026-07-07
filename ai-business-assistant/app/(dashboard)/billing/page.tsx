@@ -1,231 +1,33 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import * as React from "react";
-import Link from "next/link";
-import {
-  CreditCard,
-  Receipt,
-  ArrowUpRight,
-  Loader2,
-  AlertCircle,
-  CheckCircle2,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import {
-  BillingToggle,
-  PlanCard,
-  ComparisonTable,
-  UpgradeDialog,
-  CurrentPlanBanner,
-} from "@/components/pricing";
-import { PLAN_CONFIGS } from "@/utils/constants";
-import { createCheckoutSession, createPortalSession } from "@/actions/billing";
-import type { DbPlanType } from "@/types/database";
+import { createClient } from "@/lib/supabase/server";
+import type { CreditsRow, SubscriptionRow } from "@/types/database";
+import { BillingClient } from "./billing-client";
 
-function useBillingData() {
-  const [plan] = React.useState<DbPlanType>("free");
-  const [creditsBalance] = React.useState(35);
-  const [creditsTotal] = React.useState(50);
-  const [nextBillingDate] = React.useState<string | null>(null);
-  return { plan, creditsBalance, creditsTotal, nextBillingDate };
-}
+export const metadata = {
+  title: "Billing & Plans",
+};
 
-export default function BillingPage() {
-  const { plan, creditsBalance, creditsTotal, nextBillingDate } = useBillingData();
-  const [isAnnual, setIsAnnual] = React.useState(false);
-  const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [targetPlan, setTargetPlan] = React.useState<DbPlanType | null>(null);
-  const [portalLoading, setPortalLoading] = React.useState(false);
-  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+export default async function BillingPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  function handleUpgrade(planId: DbPlanType) {
-    setTargetPlan(planId);
-    setDialogOpen(true);
-  }
+  if (!user) redirect("/login");
 
-  async function handleConfirmUpgrade() {
-    if (!targetPlan) return;
-    setErrorMsg(null);
-    try {
-      const result = await createCheckoutSession(targetPlan, isAnnual);
-      if (result.success) {
-        window.location.href = result.data.url;
-      } else {
-        setErrorMsg(result.error);
-      }
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Payment integration arrives in a future milestone.");
-    }
-  }
+  const [{ data: subscription }, { data: credits }] = await Promise.all([
+    supabase
+      .from("subscriptions")
+      .select("*")
+      .eq("user_id", user.id)
+      .single<SubscriptionRow>(),
+    supabase
+      .from("credits")
+      .select("*")
+      .eq("user_id", user.id)
+      .single<CreditsRow>(),
+  ]);
 
-  async function handleManageBilling() {
-    setPortalLoading(true);
-    setErrorMsg(null);
-    try {
-      const result = await createPortalSession();
-      if (result.success) {
-        window.location.href = result.data.url;
-      } else {
-        setErrorMsg(result.error);
-      }
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Billing portal arrives in a future milestone.");
-    } finally {
-      setPortalLoading(false);
-    }
-  }
-
-  const isPaid = plan !== "free";
-
-  return (
-    <div className="p-6 lg:p-8 max-w-5xl mx-auto space-y-10">
-      {/* Page header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Billing & Plans</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage your subscription and payment information.
-          </p>
-        </div>
-
-        {isPaid && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleManageBilling}
-            disabled={portalLoading}
-          >
-            {portalLoading ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <CreditCard className="h-4 w-4 mr-2" />
-            )}
-            Manage Payment Method
-            <ArrowUpRight className="h-3.5 w-3.5 ml-1.5" />
-          </Button>
-        )}
-      </div>
-
-      {/* Current plan banner */}
-      <section>
-        <CurrentPlanBanner
-          plan={plan}
-          creditsBalance={creditsBalance}
-          creditsTotal={creditsTotal}
-          nextBillingDate={nextBillingDate}
-          showUpgradeButton={false}
-        />
-      </section>
-
-      {errorMsg && (
-        <div className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
-          <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
-          <p className="text-sm text-destructive">{errorMsg}</p>
-        </div>
-      )}
-
-      {plan === "free" && (
-        <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3">
-          <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-          <p className="text-sm text-amber-700 dark:text-amber-400">
-            You&apos;re on the Free plan. Upgrade to unlock more credits, saved documents, and
-            priority generation.
-          </p>
-        </div>
-      )}
-
-      {isPaid && (
-        <div className="flex items-start gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3">
-          <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
-          <div className="text-sm text-emerald-700 dark:text-emerald-400">
-            <span className="font-semibold">Active subscription.</span> Your plan renews
-            automatically.{" "}
-            <button
-              onClick={handleManageBilling}
-              className="underline underline-offset-2 hover:no-underline"
-            >
-              Manage billing
-            </button>{" "}
-            to update payment details or cancel.
-          </div>
-        </div>
-      )}
-
-      <Separator />
-
-      {/* Upgrade section */}
-      <section className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold">Available Plans</h2>
-            <p className="text-sm text-muted-foreground">
-              Switch plans at any time. Changes take effect immediately.
-            </p>
-          </div>
-          <BillingToggle isAnnual={isAnnual} onToggle={setIsAnnual} />
-        </div>
-
-        <div className="grid gap-5 sm:grid-cols-3">
-          {PLAN_CONFIGS.map((p) => (
-            <PlanCard
-              key={p.id}
-              plan={p}
-              isAnnual={isAnnual}
-              currentPlan={plan}
-              isAuthenticated
-              onUpgrade={handleUpgrade}
-            />
-          ))}
-        </div>
-      </section>
-
-      <Separator />
-
-      {/* Comparison table */}
-      <section className="space-y-5">
-        <div>
-          <h2 className="text-lg font-semibold">Feature Comparison</h2>
-          <p className="text-sm text-muted-foreground">
-            Full breakdown of what&apos;s included across all plans.
-          </p>
-        </div>
-        <ComparisonTable />
-      </section>
-
-      <Separator />
-
-      {/* Invoice note */}
-      <section className="flex items-center gap-3 rounded-xl border border-border bg-muted/20 px-5 py-4">
-        <Receipt className="h-5 w-5 text-muted-foreground shrink-0" />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium">Invoices & Payment History</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Download invoices and view past charges from the Stripe billing portal.
-          </p>
-        </div>
-        {isPaid ? (
-          <Button variant="outline" size="sm" onClick={handleManageBilling} disabled={portalLoading}>
-            {portalLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Open Portal"}
-          </Button>
-        ) : (
-          <Link
-            href="/pricing"
-            className="text-xs font-medium text-primary underline-offset-4 hover:underline shrink-0"
-          >
-            Upgrade to access
-          </Link>
-        )}
-      </section>
-
-      <UpgradeDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        targetPlan={targetPlan}
-        currentPlan={plan}
-        isAnnual={isAnnual}
-        onConfirm={handleConfirmUpgrade}
-      />
-    </div>
-  );
+  return <BillingClient subscription={subscription} credits={credits} />;
 }
