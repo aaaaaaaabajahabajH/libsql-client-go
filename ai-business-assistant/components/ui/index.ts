@@ -52,6 +52,20 @@ export {
 } from "./toast";
 export { PasswordInput } from "./password-input";
 export {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
+} from "./dialog";
+export { Slider } from "./slider";
+export { RadioGroup, RadioGroupItem } from "./radio-group";
+export {
   Sheet,
   SheetClose,
   SheetContent,

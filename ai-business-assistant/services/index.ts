@@ -8,3 +8,4 @@ export * from "./credits";
 export * from "./history";
 export * from "./documents";
 export * from "./subscription";
+export * from "./preferences";

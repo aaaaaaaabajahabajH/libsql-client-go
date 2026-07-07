@@ -1,6 +1,6 @@
 /**
  * Supabase Database type definitions.
- * These mirror the SQL schema in supabase/migrations/001_initial_schema.sql exactly.
+ * These mirror the SQL schema in supabase/migrations/*.sql exactly.
  * Re-generate with: supabase gen types typescript --linked > types/database.ts
  */
 
@@ -16,7 +16,6 @@ export type Json =
 
 export type DbPlanType = "free" | "starter" | "pro" | "enterprise";
 
-/** Mirrors Stripe subscription status values (US spelling: "canceled"). */
 export type DbSubscriptionStatus =
   | "active"
   | "canceled"
@@ -34,6 +33,12 @@ export type DbToolType =
   | "invoice-generator"
   | "translator";
 
+export type DbTheme = "light" | "dark" | "system";
+
+export type DbWritingTone = "professional" | "casual" | "friendly" | "formal" | "persuasive";
+
+export type DbAIProvider = "openai" | "anthropic" | "google";
+
 /* ─── Table row types ──────────────────────────────────────── */
 
 export interface ProfileRow {
@@ -43,6 +48,11 @@ export interface ProfileRow {
   avatar_url: string | null;
   company: string | null;
   website: string | null;
+  username: string | null;
+  job_title: string | null;
+  bio: string | null;
+  country: string | null;
+  timezone: string;
   plan: DbPlanType;
   created_at: string;
   updated_at: string;
@@ -74,7 +84,6 @@ export interface CreditsRow {
   updated_at: string;
 }
 
-/** Immutable append-only log entry. input stores raw form values as JSONB. */
 export interface HistoryRow {
   id: string;
   user_id: string;
@@ -99,13 +108,46 @@ export interface SavedDocumentRow {
   updated_at: string;
 }
 
+export interface UserPreferencesRow {
+  id: string;
+  user_id: string;
+  ai_provider: DbAIProvider;
+  ai_model: string;
+  temperature: number;
+  max_tokens: number;
+  default_language: string;
+  writing_tone: DbWritingTone;
+  theme: DbTheme;
+  app_language: string;
+  notify_marketing: boolean;
+  notify_billing: boolean;
+  notify_ai_completion: boolean;
+  notify_security: boolean;
+  workspace_name: string | null;
+  workspace_logo_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 /* ─── Insert / Update helpers ──────────────────────────────── */
 
 export type ProfileInsert = Pick<ProfileRow, "id" | "email"> &
-  Partial<Pick<ProfileRow, "full_name" | "avatar_url" | "company" | "website" | "plan">>;
+  Partial<Omit<ProfileRow, "id" | "email" | "created_at" | "updated_at">>;
 
 export type ProfileUpdate = Partial<
-  Pick<ProfileRow, "full_name" | "avatar_url" | "company" | "website" | "plan">
+  Pick<
+    ProfileRow,
+    | "full_name"
+    | "avatar_url"
+    | "company"
+    | "website"
+    | "username"
+    | "job_title"
+    | "bio"
+    | "country"
+    | "timezone"
+    | "plan"
+  >
 >;
 
 export type HistoryInsert = Omit<HistoryRow, "id" | "created_at">;
@@ -118,6 +160,10 @@ export type SavedDocumentInsert = Omit<
 
 export type SavedDocumentUpdate = Partial<
   Pick<SavedDocumentRow, "title" | "content" | "tags" | "is_favorite">
+>;
+
+export type UserPreferencesUpdate = Partial<
+  Omit<UserPreferencesRow, "id" | "user_id" | "created_at" | "updated_at">
 >;
 
 /* ─── Full Database interface (for createClient<Database> generics) ── */
@@ -187,6 +233,28 @@ export interface Database {
           tags?: string[];
           is_favorite?: boolean;
         };
+        Relationships: [];
+      };
+      user_preferences: {
+        Row: UserPreferencesRow & Record<string, unknown>;
+        Insert: {
+          user_id: string;
+          ai_provider?: DbAIProvider;
+          ai_model?: string;
+          temperature?: number;
+          max_tokens?: number;
+          default_language?: string;
+          writing_tone?: DbWritingTone;
+          theme?: DbTheme;
+          app_language?: string;
+          notify_marketing?: boolean;
+          notify_billing?: boolean;
+          notify_ai_completion?: boolean;
+          notify_security?: boolean;
+          workspace_name?: string | null;
+          workspace_logo_url?: string | null;
+        };
+        Update: UserPreferencesUpdate;
         Relationships: [];
       };
     };
