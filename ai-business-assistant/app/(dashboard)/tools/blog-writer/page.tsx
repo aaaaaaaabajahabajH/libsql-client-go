@@ -1,20 +1,117 @@
-import type { Metadata } from "next";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Blog Writer",
-  description: "Generate SEO-optimized blog articles that rank and engage.",
-};
+import * as React from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { PenTool, Loader2, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { CreditDisplay, ToolOutput, BlogWriterFields } from "@/components/tools";
+import { useToolGeneration } from "@/hooks/use-tool-generation";
+import {
+  BlogWriterSchema,
+  type BlogWriterFormValues,
+} from "@/actions/tools";
+import { TOOL_CREDIT_COSTS } from "@/utils/constants";
 
-/**
- * Blog Writer tool page — implemented in Milestone 9.
- */
+const CREDIT_COST = TOOL_CREDIT_COSTS["blog-writer"];
+
 export default function BlogWriterPage() {
+  const { status, output, error, generate, reset } = useToolGeneration("blog-writer");
+
+  const form = useForm<BlogWriterFormValues>({
+    resolver: zodResolver(BlogWriterSchema),
+    defaultValues: {
+      tone: "professional",
+      wordCount: "800",
+      includeHeadings: true,
+    },
+  });
+
+  function onSubmit(values: BlogWriterFormValues) {
+    const title = values.title.slice(0, 100);
+    generate(
+      {
+        title: values.title,
+        outline: values.outline,
+        tone: values.tone,
+        wordCount: values.wordCount,
+        includeHeadings: values.includeHeadings,
+      },
+      title,
+    );
+  }
+
+  const isGenerating = status === "generating";
+
   return (
-    <main className="flex-1 p-6">
-      <h1 className="text-2xl font-bold tracking-tight">Blog Writer</h1>
-      <p className="mt-1 text-muted-foreground">
-        Tool implementation — Milestone 9
-      </p>
-    </main>
+    <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+      <div className="flex items-start gap-3 mb-6">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 shadow-sm shrink-0">
+          <PenTool className="h-5 w-5 text-white" />
+        </div>
+        <div>
+          <h1 className="text-xl font-bold tracking-tight">Blog Writer</h1>
+          <p className="text-sm text-muted-foreground">
+            Produce SEO-optimized articles that rank in search and keep readers engaged.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="p-5 space-y-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
+              Input
+            </h2>
+            <CreditDisplay cost={CREDIT_COST} balance={50} />
+          </div>
+
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+            <BlogWriterFields form={form} />
+
+            <div className="flex gap-2 pt-1">
+              <Button
+                type="submit"
+                disabled={isGenerating}
+                className="flex-1 font-semibold shadow-glow-sm"
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Writing…
+                  </>
+                ) : (
+                  <>
+                    <Zap className="h-4 w-4 mr-2" />
+                    Write Blog Post
+                  </>
+                )}
+              </Button>
+              {status !== "idle" && (
+                <Button type="button" variant="outline" onClick={reset}>
+                  Clear
+                </Button>
+              )}
+            </div>
+          </form>
+        </Card>
+
+        <Card className="p-5 flex flex-col min-h-[480px]">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-4">
+            Output
+          </h2>
+          <ToolOutput
+            status={status}
+            output={output}
+            error={error}
+            tool="blog-writer"
+            defaultTitle={form.watch("title") ?? "Blog post"}
+            onRegenerate={form.handleSubmit(onSubmit)}
+            className="flex-1"
+          />
+        </Card>
+      </div>
+    </div>
   );
 }

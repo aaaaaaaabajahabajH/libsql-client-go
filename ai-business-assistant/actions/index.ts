@@ -5,3 +5,5 @@
 
 export * from "./auth";
 export * from "./tools";
+export * from "./history";
+export * from "./documents";

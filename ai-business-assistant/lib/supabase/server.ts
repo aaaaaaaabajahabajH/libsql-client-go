@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/types/database";
 
@@ -11,7 +12,7 @@ import type { Database } from "@/types/database";
  *
  * Must be `await`-ed because `cookies()` is async in Next.js 15.
  */
-export async function createClient() {
+export async function createClient(): Promise<SupabaseClient<Database>> {
   const cookieStore = await cookies();
 
   return createServerClient<Database>(
@@ -36,5 +37,5 @@ export async function createClient() {
         },
       },
     },
-  );
+  ) as unknown as SupabaseClient<Database>;
 }
