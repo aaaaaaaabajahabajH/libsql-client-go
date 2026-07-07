@@ -5,3 +5,5 @@
 
 export * from "./ai";
 export * from "./credits";
+export * from "./history";
+export * from "./documents";

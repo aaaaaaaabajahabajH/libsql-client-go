@@ -2,8 +2,6 @@
 
 import { z } from "zod";
 
-import type { AsyncActionResult, ToolResult, ToolType } from "@/types";
-
 /* ─── Shared field validators ────────────────────────────────── */
 
 const promptField = z
@@ -72,30 +70,3 @@ export type EmailWriterFormValues = z.infer<typeof EmailWriterSchema>;
 export type InvoiceGeneratorFormValues = z.infer<typeof InvoiceGeneratorSchema>;
 export type TranslatorFormValues = z.infer<typeof TranslatorSchema>;
 
-/* ─── Generic tool execution signature ──────────────────────── */
-
-export async function runToolAction(
-  _tool: ToolType,
-  _values: Record<string, unknown>,
-): AsyncActionResult<ToolResult> {
-  throw new Error("runToolAction: implemented in Milestone 9");
-}
-
-export async function saveHistoryAction(
-  _tool: ToolType,
-  _title: string,
-  _prompt: string,
-  _output: string,
-  _credits: number,
-): AsyncActionResult<{ id: string }> {
-  throw new Error("saveHistoryAction: implemented in Milestone 9");
-}
-
-export async function saveDocumentAction(
-  _historyId: string,
-  _title: string,
-  _content: string,
-  _tags: string[],
-): AsyncActionResult<{ id: string }> {
-  throw new Error("saveDocumentAction: implemented in Milestone 9");
-}

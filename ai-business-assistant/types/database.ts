@@ -126,12 +126,13 @@ export interface Database {
   public: {
     Tables: {
       profiles: {
-        Row: ProfileRow;
+        Row: ProfileRow & Record<string, unknown>;
         Insert: ProfileInsert;
         Update: ProfileUpdate;
+        Relationships: [];
       };
       subscriptions: {
-        Row: SubscriptionRow;
+        Row: SubscriptionRow & Record<string, unknown>;
         Insert: Omit<SubscriptionRow, "id" | "created_at" | "updated_at">;
         Update: Partial<
           Pick<
@@ -146,23 +147,47 @@ export interface Database {
             | "cancel_at_period_end"
           >
         >;
+        Relationships: [];
       };
       credits: {
-        Row: CreditsRow;
+        Row: CreditsRow & Record<string, unknown>;
         Insert: Omit<CreditsRow, "id" | "created_at" | "updated_at">;
         Update: Partial<
           Pick<CreditsRow, "balance" | "monthly_allowance" | "total_used" | "reset_at">
         >;
+        Relationships: [];
       };
       history: {
-        Row: HistoryRow;
-        Insert: HistoryInsert;
-        Update: never;
+        Row: HistoryRow & Record<string, unknown>;
+        Insert: {
+          user_id: string;
+          tool: DbToolType;
+          title: string;
+          input: Json;
+          output: string;
+          credits_used: number;
+        };
+        Update: Record<string, never>;
+        Relationships: [];
       };
       saved_documents: {
-        Row: SavedDocumentRow;
-        Insert: SavedDocumentInsert;
-        Update: SavedDocumentUpdate;
+        Row: SavedDocumentRow & Record<string, unknown>;
+        Insert: {
+          user_id: string;
+          tool: DbToolType;
+          title: string;
+          content: string;
+          history_id?: string | null;
+          tags?: string[];
+          is_favorite?: boolean;
+        };
+        Update: {
+          title?: string;
+          content?: string;
+          tags?: string[];
+          is_favorite?: boolean;
+        };
+        Relationships: [];
       };
     };
     Views: {
@@ -172,6 +197,7 @@ export interface Database {
           monthly_credits: number;
           history_retention_days: number | null;
         };
+        Relationships: [];
       };
     };
     Functions: {
