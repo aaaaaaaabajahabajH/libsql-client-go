@@ -14,6 +14,10 @@ export type Json =
 
 /* ─── Enum mirrors ─────────────────────────────────────────── */
 
+export type DbRole = "user" | "admin" | "superadmin";
+
+export type DbLogType = "activity" | "auth" | "billing" | "ai" | "error";
+
 export type DbPlanType = "free" | "starter" | "pro" | "enterprise";
 
 export type DbSubscriptionStatus =
@@ -54,8 +58,21 @@ export interface ProfileRow {
   country: string | null;
   timezone: string;
   plan: DbPlanType;
+  role: DbRole;
+  is_suspended: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface AdminLogRow {
+  id: string;
+  log_type: DbLogType;
+  admin_id: string | null;
+  user_id: string | null;
+  action: string;
+  details: Record<string, unknown>;
+  ip_address: string | null;
+  created_at: string;
 }
 
 export interface SubscriptionRow {
@@ -147,6 +164,8 @@ export type ProfileUpdate = Partial<
     | "country"
     | "timezone"
     | "plan"
+    | "role"
+    | "is_suspended"
   >
 >;
 
@@ -255,6 +274,19 @@ export interface Database {
           workspace_logo_url?: string | null;
         };
         Update: UserPreferencesUpdate;
+        Relationships: [];
+      };
+      admin_logs: {
+        Row: AdminLogRow & Record<string, unknown>;
+        Insert: {
+          log_type: DbLogType;
+          action: string;
+          admin_id?: string | null;
+          user_id?: string | null;
+          details?: Record<string, unknown>;
+          ip_address?: string | null;
+        };
+        Update: Record<string, never>;
         Relationships: [];
       };
     };
