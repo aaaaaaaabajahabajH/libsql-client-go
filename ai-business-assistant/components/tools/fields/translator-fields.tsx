@@ -2,8 +2,9 @@
 
 import { Controller } from "react-hook-form";
 import type { UseFormReturn } from "react-hook-form";
+
+import type { TranslatorFormValues } from "@/actions/tools";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -11,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { TranslatorFormValues } from "@/actions/tools";
+import { Textarea } from "@/components/ui/textarea";
 
 const POPULAR_LANGUAGES = [
   "Spanish", "French", "German", "Italian", "Portuguese",
@@ -45,8 +46,8 @@ export function TranslatorFields({ form }: Props) {
         </div>
         <Textarea
           id="tr-text"
-          rows={5}
           placeholder="Paste the text you want to translate here..."
+          rows={5}
           {...register("text")}
         />
         {errors.text && (
@@ -101,8 +102,8 @@ export function TranslatorFields({ form }: Props) {
 
       <label className="flex items-center gap-2 cursor-pointer">
         <input
-          type="checkbox"
           className="h-4 w-4 rounded border-border accent-primary"
+          type="checkbox"
           {...register("preserveTone")}
         />
         <span className="text-sm">Preserve original tone and voice</span>

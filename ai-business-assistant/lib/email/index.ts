@@ -1,5 +1,5 @@
-import { ResendProvider } from "./resend";
 import type { EmailProvider } from "./provider";
+import { ResendProvider } from "./resend";
 
 let _provider: EmailProvider | null = null;
 

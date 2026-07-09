@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
 import { MailCheck } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -28,14 +28,14 @@ export default function VerifyEmailPage() {
       <div className="w-full rounded-lg border bg-muted/40 p-4">
         <p className="text-sm text-muted-foreground">
           Didn&apos;t receive the email? Check your spam folder, or{" "}
-          <Link href="/register" className="text-primary hover:underline">
+          <Link className="text-primary hover:underline" href="/register">
             try a different email address
           </Link>
           .
         </p>
       </div>
 
-      <Button variant="outline" asChild>
+      <Button asChild variant="outline">
         <Link href="/login">Back to sign in</Link>
       </Button>
     </div>

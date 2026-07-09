@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { type NextRequest } from "next/server";
 import type Stripe from "stripe";
 
 import { getStripe } from "@/lib/stripe";

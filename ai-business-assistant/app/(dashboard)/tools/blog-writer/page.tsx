@@ -1,17 +1,18 @@
 "use client";
 
-import * as React from "react";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenTool, Loader2, Zap } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { CreditDisplay, ToolOutput, BlogWriterFields } from "@/components/tools";
-import { useToolGeneration } from "@/hooks/use-tool-generation";
+import * as React from "react";
+import { useForm } from "react-hook-form";
+
 import {
   BlogWriterSchema,
   type BlogWriterFormValues,
 } from "@/actions/tools";
+import { CreditDisplay, ToolOutput, BlogWriterFields } from "@/components/tools";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { useToolGeneration } from "@/hooks/use-tool-generation";
 import { TOOL_CREDIT_COSTS } from "@/utils/constants";
 
 const CREDIT_COST = TOOL_CREDIT_COSTS["blog-writer"];
@@ -64,17 +65,17 @@ export default function BlogWriterPage() {
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
               Input
             </h2>
-            <CreditDisplay cost={CREDIT_COST} balance={50} />
+            <CreditDisplay balance={50} cost={CREDIT_COST} />
           </div>
 
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+          <form className="space-y-5" onSubmit={form.handleSubmit(onSubmit)}>
             <BlogWriterFields form={form} />
 
             <div className="flex gap-2 pt-1">
               <Button
-                type="submit"
-                disabled={isGenerating}
                 className="flex-1 font-semibold shadow-glow-sm"
+                disabled={isGenerating}
+                type="submit"
               >
                 {isGenerating ? (
                   <>
@@ -102,13 +103,13 @@ export default function BlogWriterPage() {
             Output
           </h2>
           <ToolOutput
-            status={status}
-            output={output}
-            error={error}
-            tool="blog-writer"
-            defaultTitle={form.watch("title") ?? "Blog post"}
-            onRegenerate={form.handleSubmit(onSubmit)}
             className="flex-1"
+            defaultTitle={form.watch("title") ?? "Blog post"}
+            error={error}
+            output={output}
+            status={status}
+            tool="blog-writer"
+            onRegenerate={form.handleSubmit(onSubmit)}
           />
         </Card>
       </div>

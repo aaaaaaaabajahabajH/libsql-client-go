@@ -1,9 +1,10 @@
 "use client";
 
 import * as Sentry from "@sentry/nextjs";
-import { useEffect } from "react";
-import Link from "next/link";
 import { ShieldAlert, RefreshCw } from "lucide-react";
+import Link from "next/link";
+import { useEffect } from "react";
+
 import { Button } from "@/components/ui/button";
 
 interface ErrorProps {
@@ -34,11 +35,11 @@ export default function AdminError({ error, reset }: ErrorProps) {
           )}
         </div>
         <div className="flex gap-3">
-          <Button onClick={reset} size="sm">
+          <Button size="sm" onClick={reset}>
             <RefreshCw className="h-4 w-4 mr-1.5" />
             Try again
           </Button>
-          <Button variant="outline" size="sm" asChild>
+          <Button asChild size="sm" variant="outline">
             <Link href="/admin">Back to Admin</Link>
           </Button>
         </div>

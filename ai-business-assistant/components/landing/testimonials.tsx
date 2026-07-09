@@ -1,7 +1,8 @@
 import { Star } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 
 const testimonials = [
   {
@@ -84,11 +85,11 @@ function StarRating({ count }: { count: number }) {
 
 export function Testimonials() {
   return (
-    <section id="testimonials" className="py-20 sm:py-28 bg-muted/20">
+    <section className="py-20 sm:py-28 bg-muted/20" id="testimonials">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16 space-y-4">
-          <Badge variant="secondary" className="text-xs font-semibold px-3 py-1">
+          <Badge className="text-xs font-semibold px-3 py-1" variant="secondary">
             Customer Stories
           </Badge>
           <h2 className="text-3xl sm:text-5xl font-bold tracking-tight">
@@ -119,8 +120,8 @@ export function Testimonials() {
                 {/* Highlight metric */}
                 <div className="mt-4 mb-4">
                   <Badge
-                    variant="secondary"
                     className="text-[11px] font-semibold text-primary border-primary/20 bg-primary/5"
+                    variant="secondary"
                   >
                     {t.highlight}
                   </Badge>

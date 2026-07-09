@@ -54,11 +54,13 @@ function createEntry(
 export const logger = {
   debug(message: string, context?: LogContext): void {
     if (process.env.NODE_ENV === "development") {
+      // eslint-disable-next-line no-console
       console.debug(formatEntry(createEntry("debug", message, context)));
     }
   },
 
   info(message: string, context?: LogContext): void {
+    // eslint-disable-next-line no-console
     console.info(formatEntry(createEntry("info", message, context)));
   },
 

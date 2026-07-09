@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { Bot } from "lucide-react";
+import Link from "next/link";
 
 export function Footer() {
   return (
@@ -7,7 +7,7 @@ export function Footer() {
       <div className="container py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="col-span-1 md:col-span-2">
-            <Link href="/" className="flex items-center gap-2 font-bold text-xl mb-4">
+            <Link className="flex items-center gap-2 font-bold text-xl mb-4" href="/">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
                 <Bot className="h-5 w-5 text-primary-foreground" />
               </div>
@@ -31,8 +31,8 @@ export function Footer() {
               ].map((link) => (
                 <li key={link.href}>
                   <Link
-                    href={link.href}
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    href={link.href}
                   >
                     {link.label}
                   </Link>
@@ -51,8 +51,8 @@ export function Footer() {
               ].map((link) => (
                 <li key={link.href}>
                   <Link
-                    href={link.href}
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    href={link.href}
                   >
                     {link.label}
                   </Link>

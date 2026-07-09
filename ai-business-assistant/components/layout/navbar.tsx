@@ -1,8 +1,9 @@
 "use client";
 
+import { Bot, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { Bot, Menu, X } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 
 export function Navbar() {
@@ -11,7 +12,7 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 font-bold text-xl">
+        <Link className="flex items-center gap-2 font-bold text-xl" href="/">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
             <Bot className="h-5 w-5 text-primary-foreground" />
           </div>
@@ -23,27 +24,27 @@ export function Navbar() {
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-6">
           <Link
-            href="/pricing"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            href="/pricing"
           >
             Pricing
           </Link>
           <Link
-            href="#features"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            href="#features"
           >
             Features
           </Link>
           <Link
-            href="#testimonials"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            href="#testimonials"
           >
             Testimonials
           </Link>
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
-          <Button variant="ghost" asChild>
+          <Button asChild variant="ghost">
             <Link href="/login">Sign In</Link>
           </Button>
           <Button asChild>
@@ -53,9 +54,9 @@ export function Navbar() {
 
         {/* Mobile Toggle */}
         <button
+          aria-label="Toggle menu"
           className="md:hidden p-2 rounded-md hover:bg-accent"
           onClick={() => setMenuOpen(!menuOpen)}
-          aria-label="Toggle menu"
         >
           {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
@@ -66,28 +67,28 @@ export function Navbar() {
         <div className="md:hidden border-t border-border animate-fade-in">
           <nav className="container flex flex-col gap-1 py-4">
             <Link
-              href="/pricing"
               className="px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
+              href="/pricing"
               onClick={() => setMenuOpen(false)}
             >
               Pricing
             </Link>
             <Link
-              href="#features"
               className="px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
+              href="#features"
               onClick={() => setMenuOpen(false)}
             >
               Features
             </Link>
             <Link
-              href="#testimonials"
               className="px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
+              href="#testimonials"
               onClick={() => setMenuOpen(false)}
             >
               Testimonials
             </Link>
             <div className="flex flex-col gap-2 pt-3 border-t border-border mt-2">
-              <Button variant="outline" asChild>
+              <Button asChild variant="outline">
                 <Link href="/login" onClick={() => setMenuOpen(false)}>
                   Sign In
                 </Link>

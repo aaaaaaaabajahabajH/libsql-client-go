@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { CreditCard, Sparkles, Shield, Package, Trash2 } from "lucide-react";
+import { useState } from "react";
+
+import { markNotificationReadAction, deleteNotificationAction } from "@/actions/notifications";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { markNotificationReadAction, deleteNotificationAction } from "@/actions/notifications";
 import type { NotificationRow, DbNotificationType } from "@/types/database";
 
 const TYPE_ICON: Record<DbNotificationType, React.ComponentType<{ className?: string }>> = {
@@ -59,11 +60,11 @@ export function NotificationItem({ notification, onDelete, compact = false }: No
 
   return (
     <div
-      onMouseEnter={handleMouseEnter}
       className={cn(
         "group flex items-start gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-muted/50",
         !notification.is_read && "bg-primary/5",
       )}
+      onMouseEnter={handleMouseEnter}
     >
       <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", colorClass)}>
         <Icon className="h-4 w-4" />
@@ -76,12 +77,12 @@ export function NotificationItem({ notification, onDelete, compact = false }: No
           </p>
           {!compact && (
             <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={handleDelete}
-              disabled={deleting}
               aria-label="Delete notification"
+              className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              disabled={deleting}
+              size="icon"
+              variant="ghost"
+              onClick={handleDelete}
             >
               <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
             </Button>

@@ -1,7 +1,8 @@
-import Link from "next/link";
 import { ArrowRight, Sparkles, Zap, BarChart3, FileText, Share2, Mail } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 /* ─── Activity item in the preview ──────────────────────── */
 
@@ -28,7 +29,7 @@ export function DashboardPreview() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Left — copy */}
           <div className="space-y-6">
-            <Badge variant="secondary" className="text-xs font-semibold px-3 py-1">
+            <Badge className="text-xs font-semibold px-3 py-1" variant="secondary">
               Live Dashboard
             </Badge>
             <h2 className="text-3xl sm:text-5xl font-bold tracking-tight leading-tight">
@@ -57,7 +58,7 @@ export function DashboardPreview() {
               ))}
             </ul>
 
-            <Button asChild size="lg" className="h-12 px-8 shadow-glow">
+            <Button asChild className="h-12 px-8 shadow-glow" size="lg">
               <Link href="/register">
                 See Your Dashboard
                 <ArrowRight className="h-4 w-4 ml-2" />

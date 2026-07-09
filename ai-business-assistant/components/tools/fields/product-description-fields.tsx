@@ -2,9 +2,10 @@
 
 import { Controller } from "react-hook-form";
 import type { UseFormReturn } from "react-hook-form";
-import { Label } from "@/components/ui/label";
+
+import type { ProductDescriptionFormValues } from "@/actions/tools";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -12,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { ProductDescriptionFormValues } from "@/actions/tools";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Props {
   form: UseFormReturn<ProductDescriptionFormValues>;
@@ -43,8 +44,8 @@ export function ProductDescriptionFields({ form }: Props) {
         <Label htmlFor="pd-features">Key Features & Specs</Label>
         <Textarea
           id="pd-features"
-          rows={3}
           placeholder="List the main features, specs, materials, or selling points. Be specific."
+          rows={3}
           {...register("keyFeatures")}
         />
         {errors.keyFeatures && (

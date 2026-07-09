@@ -1,12 +1,15 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
 import * as React from "react";
 import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
+
+import { updateAIPreferencesAction } from "@/actions/settings";
+import { SaveFeedback } from "@/components/settings/save-feedback";
+import { SettingsSection, SettingsRow } from "@/components/settings/settings-section";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import {
   Select,
   SelectContent,
@@ -14,11 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SettingsSection, SettingsRow } from "@/components/settings/settings-section";
-import { SaveFeedback } from "@/components/settings/save-feedback";
-import { updateAIPreferencesAction } from "@/actions/settings";
-import { AI_LANGUAGES } from "@/utils/locale-data";
+import { Slider } from "@/components/ui/slider";
 import type { UserPreferencesRow } from "@/types/database";
+import { AI_LANGUAGES } from "@/utils/locale-data";
 
 const schema = z.object({
   ai_provider: z.enum(["openai", "anthropic", "google"]),
@@ -113,10 +114,10 @@ export function AIPreferencesForm({ preferences }: AIPreferencesFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
+    <form className="space-y-10" onSubmit={handleSubmit(onSubmit)}>
       <SettingsSection
-        title="AI Engine"
         description="Choose which AI provider and model powers your content generation."
+        title="AI Engine"
       >
         <SettingsRow label="Provider">
           <Controller
@@ -165,12 +166,12 @@ export function AIPreferencesForm({ preferences }: AIPreferencesFormProps) {
       </SettingsSection>
 
       <SettingsSection
-        title="Generation Settings"
         description="Fine-tune how the AI produces content."
+        title="Generation Settings"
       >
         <SettingsRow
-          label="Creativity"
           description="Higher values make output more creative and varied. Lower values keep it predictable."
+          label="Creativity"
         >
           <div className="space-y-3">
             <Controller
@@ -178,8 +179,8 @@ export function AIPreferencesForm({ preferences }: AIPreferencesFormProps) {
               name="temperature"
               render={({ field }) => (
                 <Slider
-                  min={0}
                   max={1}
+                  min={0}
                   step={0.1}
                   value={[field.value]}
                   onValueChange={([v]) => field.onChange(v)}
@@ -197,8 +198,8 @@ export function AIPreferencesForm({ preferences }: AIPreferencesFormProps) {
         </SettingsRow>
 
         <SettingsRow
-          label="Max output length"
           description="Maximum number of tokens the AI will generate per request."
+          label="Max output length"
         >
           <Controller
             control={control}
@@ -224,8 +225,8 @@ export function AIPreferencesForm({ preferences }: AIPreferencesFormProps) {
         </SettingsRow>
 
         <SettingsRow
-          label="Default language"
           description="Language used when generating content unless overridden per-tool."
+          label="Default language"
         >
           <Controller
             control={control}
@@ -246,8 +247,8 @@ export function AIPreferencesForm({ preferences }: AIPreferencesFormProps) {
         </SettingsRow>
 
         <SettingsRow
-          label="Writing tone"
           description="Default tone applied to generated content."
+          label="Writing tone"
         >
           <Controller
             control={control}
@@ -269,11 +270,11 @@ export function AIPreferencesForm({ preferences }: AIPreferencesFormProps) {
       </SettingsSection>
 
       <div className="flex items-center gap-4 pt-2">
-        <Button type="submit" disabled={isSubmitting}>
+        <Button disabled={isSubmitting} type="submit">
           {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           Save AI preferences
         </Button>
-        {status && <SaveFeedback success={status.success} message={status.message} />}
+        {status && <SaveFeedback message={status.message} success={status.success} />}
       </div>
     </form>
   );

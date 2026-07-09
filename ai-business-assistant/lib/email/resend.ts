@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+
 import type { EmailProvider, SendEmailPayload, SendEmailResult } from "./provider";
 
 export class ResendProvider implements EmailProvider {

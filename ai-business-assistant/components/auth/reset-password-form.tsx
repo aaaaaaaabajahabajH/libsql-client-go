@@ -72,15 +72,15 @@ export function ResetPasswordForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+    <form noValidate className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
       <div className="space-y-2">
         <Label htmlFor="new-password">New password</Label>
         <PasswordInput
+          aria-invalid={!!errors.password}
+          autoComplete="new-password"
+          disabled={isSubmitting}
           id="new-password"
           placeholder="Create a strong password"
-          autoComplete="new-password"
-          aria-invalid={!!errors.password}
-          disabled={isSubmitting}
           {...register("password")}
         />
         <PasswordStrength password={password} />
@@ -94,11 +94,11 @@ export function ResetPasswordForm() {
       <div className="space-y-2">
         <Label htmlFor="confirm-new-password">Confirm new password</Label>
         <PasswordInput
+          aria-invalid={!!errors.confirmPassword}
+          autoComplete="new-password"
+          disabled={isSubmitting}
           id="confirm-new-password"
           placeholder="••••••••"
-          autoComplete="new-password"
-          aria-invalid={!!errors.confirmPassword}
-          disabled={isSubmitting}
           {...register("confirmPassword")}
         />
         {errors.confirmPassword && (
@@ -108,7 +108,7 @@ export function ResetPasswordForm() {
         )}
       </div>
 
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
+      <Button className="w-full" disabled={isSubmitting} type="submit">
         {isSubmitting ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

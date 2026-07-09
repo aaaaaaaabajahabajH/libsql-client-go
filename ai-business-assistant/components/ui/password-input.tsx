@@ -15,17 +15,17 @@ const PasswordInput = React.forwardRef<
   return (
     <div className="relative">
       <Input
-        type={showPassword ? "text" : "password"}
-        className={cn("pr-10", className)}
         ref={ref}
+        className={cn("pr-10", className)}
+        type={showPassword ? "text" : "password"}
         {...props}
       />
       <button
-        type="button"
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-        onClick={() => setShowPassword((prev) => !prev)}
         aria-label={showPassword ? "Hide password" : "Show password"}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
         tabIndex={-1}
+        type="button"
+        onClick={() => setShowPassword((prev) => !prev)}
       >
         {showPassword ? (
           <EyeOff className="h-4 w-4" />

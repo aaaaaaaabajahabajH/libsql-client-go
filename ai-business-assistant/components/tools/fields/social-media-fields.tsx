@@ -2,8 +2,9 @@
 
 import { Controller } from "react-hook-form";
 import type { UseFormReturn } from "react-hook-form";
+
+import type { SocialMediaFormValues } from "@/actions/tools";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -11,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { SocialMediaFormValues } from "@/actions/tools";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Props {
   form: UseFormReturn<SocialMediaFormValues>;
@@ -51,8 +52,8 @@ export function SocialMediaFields({ form }: Props) {
         <Label htmlFor="sm-topic">Topic or message</Label>
         <Textarea
           id="sm-topic"
-          rows={3}
           placeholder="What do you want to post about? Be specific — include key points, products, or announcements."
+          rows={3}
           {...register("topic")}
         />
         {errors.topic && (
@@ -85,16 +86,16 @@ export function SocialMediaFields({ form }: Props) {
       <div className="flex items-center gap-6">
         <label className="flex items-center gap-2 cursor-pointer">
           <input
-            type="checkbox"
             className="h-4 w-4 rounded border-border accent-primary"
+            type="checkbox"
             {...register("includeHashtags")}
           />
           <span className="text-sm">Include hashtags</span>
         </label>
         <label className="flex items-center gap-2 cursor-pointer">
           <input
-            type="checkbox"
             className="h-4 w-4 rounded border-border accent-primary"
+            type="checkbox"
             {...register("includeEmojis")}
           />
           <span className="text-sm">Include emojis</span>

@@ -1,9 +1,10 @@
 "use client";
 
-import * as React from "react";
 import { Monitor, Smartphone, LogOut, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { useRouter } from "next/navigation";
+import * as React from "react";
+
+import { signOutAllDevices } from "@/actions/settings";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,8 +16,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { signOutAllDevices } from "@/actions/settings";
-import { useRouter } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+
 
 interface SessionCardProps {
   lastSignInAt: string | null;
@@ -68,7 +70,7 @@ export function SessionCard({ lastSignInAt, email }: SessionCardProps) {
         <div className="flex-1 min-w-0 space-y-1">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-medium">{device}</p>
-            <Badge variant="secondary" className="text-[10px]">Current</Badge>
+            <Badge className="text-[10px]" variant="secondary">Current</Badge>
           </div>
           <p className="text-xs text-muted-foreground truncate">{email}</p>
           <p className="text-xs text-muted-foreground">Last sign-in: {signInDisplay}</p>
@@ -80,7 +82,7 @@ export function SessionCard({ lastSignInAt, email }: SessionCardProps) {
       {/* Sign out all */}
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <Button variant="outline" size="sm" className="text-destructive hover:text-destructive border-destructive/30">
+          <Button className="text-destructive hover:text-destructive border-destructive/30" size="sm" variant="outline">
             <LogOut className="h-3.5 w-3.5 mr-1.5" />
             Sign out from all devices
           </Button>
@@ -96,9 +98,9 @@ export function SessionCard({ lastSignInAt, email }: SessionCardProps) {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleSignOutAll}
-              disabled={loading}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={loading}
+              onClick={handleSignOutAll}
             >
               {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
               {loading ? "Signing out…" : "Sign out all devices"}

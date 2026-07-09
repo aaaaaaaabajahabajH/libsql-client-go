@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
+
 import { createClient } from "@/lib/supabase/server";
 import { getOrCreatePreferences } from "@/services/preferences";
+
 import { WorkspaceForm } from "./workspace-form";
 
 export const metadata = { title: "Workspace Settings" };

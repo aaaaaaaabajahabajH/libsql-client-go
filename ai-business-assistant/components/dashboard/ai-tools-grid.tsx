@@ -1,8 +1,9 @@
-import Link from "next/link";
 import { FileText, Mail, Share2, Receipt, PenTool, Globe, ArrowRight, Zap } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import Link from "next/link";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { DbToolType } from "@/types/database";
 
@@ -88,7 +89,7 @@ export function AIToolsGrid() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-base font-semibold tracking-tight">AI Tools</h2>
-        <Badge variant="outline" className="text-xs font-normal">
+        <Badge className="text-xs font-normal" variant="outline">
           {tools.length} tools
         </Badge>
       </div>
@@ -125,8 +126,8 @@ export function AIToolsGrid() {
                 <div className="flex items-center gap-2">
                   {tool.badge && (
                     <Badge
-                      variant="secondary"
                       className="text-[10px] h-5 px-1.5 font-semibold"
+                      variant="secondary"
                     >
                       {tool.badge}
                     </Badge>
@@ -149,13 +150,13 @@ export function AIToolsGrid() {
             <CardContent className="relative pt-0 pb-4">
               <Button
                 asChild
-                variant="ghost"
-                size="sm"
                 className={cn(
                   "h-8 w-full justify-between text-xs",
                   "text-muted-foreground hover:text-foreground",
                   "transition-all duration-200",
                 )}
+                size="sm"
+                variant="ghost"
               >
                 <Link href={tool.href}>
                   Launch Tool

@@ -2,9 +2,10 @@
 
 import { Controller } from "react-hook-form";
 import type { UseFormReturn } from "react-hook-form";
-import { Label } from "@/components/ui/label";
+
+import type { BlogWriterFormValues } from "@/actions/tools";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -12,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { BlogWriterFormValues } from "@/actions/tools";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Props {
   form: UseFormReturn<BlogWriterFormValues>;
@@ -43,8 +44,8 @@ export function BlogWriterFields({ form }: Props) {
         <Label htmlFor="bw-outline">Outline / Key Points</Label>
         <Textarea
           id="bw-outline"
-          rows={4}
           placeholder="List the main sections or points to cover. One per line or as a paragraph."
+          rows={4}
           {...register("outline")}
         />
         {errors.outline && (
@@ -99,8 +100,8 @@ export function BlogWriterFields({ form }: Props) {
 
       <label className="flex items-center gap-2 cursor-pointer">
         <input
-          type="checkbox"
           className="h-4 w-4 rounded border-border accent-primary"
+          type="checkbox"
           {...register("includeHeadings")}
         />
         <span className="text-sm">Use H2/H3 headings for structure</span>

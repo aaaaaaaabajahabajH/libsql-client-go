@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+
 import { getEmailProvider } from "./index";
 
 export interface EnqueueEmailPayload {

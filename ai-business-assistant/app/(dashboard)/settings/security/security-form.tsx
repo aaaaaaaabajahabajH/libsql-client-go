@@ -1,11 +1,12 @@
 "use client";
 
-import * as React from "react";
-import { useRouter } from "next/navigation";
 import { Loader2, Monitor, ShieldCheck, ShieldOff, LogOut } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { useRouter } from "next/navigation";
+import * as React from "react";
+
+import { signOutAllDevices } from "@/actions/settings";
+import { SaveFeedback } from "@/components/settings/save-feedback";
+import { SettingsSection } from "@/components/settings/settings-section";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +18,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -25,9 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { SettingsSection } from "@/components/settings/settings-section";
-import { SaveFeedback } from "@/components/settings/save-feedback";
-import { signOutAllDevices } from "@/actions/settings";
+import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 
 interface SecurityFormProps {
@@ -147,8 +148,8 @@ export function SecurityForm({
     <div className="space-y-10">
       {/* Active session */}
       <SettingsSection
-        title="Active Session"
         description="Your current browser session and recent sign-in activity."
+        title="Active Session"
       >
         <div className="rounded-xl border border-border p-4 flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
@@ -157,7 +158,7 @@ export function SecurityForm({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <p className="text-sm font-medium">Current session</p>
-              <Badge variant="secondary" className="text-[11px]">Active now</Badge>
+              <Badge className="text-[11px]" variant="secondary">Active now</Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">{userEmail}</p>
             <p className="text-xs text-muted-foreground">Last sign-in: {formatDate(lastSignIn)}</p>
@@ -167,7 +168,7 @@ export function SecurityForm({
         <div className="flex items-center gap-4 pt-2">
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="outline" size="sm" disabled={signingOut}>
+              <Button disabled={signingOut} size="sm" variant="outline">
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign out all devices
               </Button>
@@ -182,7 +183,7 @@ export function SecurityForm({
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleSignOutAll} disabled={signingOut}>
+                <AlertDialogAction disabled={signingOut} onClick={handleSignOutAll}>
                   {signingOut && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Sign out all
                 </AlertDialogAction>
@@ -190,15 +191,15 @@ export function SecurityForm({
             </AlertDialogContent>
           </AlertDialog>
           {signOutStatus && (
-            <SaveFeedback success={signOutStatus.success} message={signOutStatus.message} />
+            <SaveFeedback message={signOutStatus.message} success={signOutStatus.success} />
           )}
         </div>
       </SettingsSection>
 
       {/* Two-factor authentication */}
       <SettingsSection
-        title="Two-Factor Authentication"
         description="Add an extra layer of security to your account using an authenticator app."
+        title="Two-Factor Authentication"
       >
         <div className="rounded-xl border border-border p-4 flex items-start gap-3">
           <div
@@ -220,7 +221,7 @@ export function SecurityForm({
                   Enabled
                 </Badge>
               ) : (
-                <Badge variant="secondary" className="text-[11px]">Disabled</Badge>
+                <Badge className="text-[11px]" variant="secondary">Disabled</Badge>
               )}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -237,7 +238,7 @@ export function SecurityForm({
           {mfaEnabled ? (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" disabled={mfaLoading}>
+                <Button disabled={mfaLoading} size="sm" variant="outline">
                   {mfaLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Disable 2FA
                 </Button>
@@ -253,8 +254,8 @@ export function SecurityForm({
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction
-                    onClick={disableMfa}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={disableMfa}
                   >
                     Disable 2FA
                   </AlertDialogAction>
@@ -262,7 +263,7 @@ export function SecurityForm({
               </AlertDialogContent>
             </AlertDialog>
           ) : (
-            <Button size="sm" onClick={startMfaEnrollment} disabled={mfaLoading}>
+            <Button disabled={mfaLoading} size="sm" onClick={startMfaEnrollment}>
               {mfaLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Enable 2FA
             </Button>
@@ -284,7 +285,7 @@ export function SecurityForm({
             {qrCode && (
               <div className="flex justify-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={qrCode} alt="2FA QR Code" className="h-48 w-48 rounded-lg border border-border" />
+                <img alt="2FA QR Code" className="h-48 w-48 rounded-lg border border-border" src={qrCode} />
               </div>
             )}
             {secret && (
@@ -296,11 +297,11 @@ export function SecurityForm({
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Verification code</label>
               <Input
-                placeholder="000000"
+                className="text-center text-lg tracking-widest"
                 maxLength={6}
+                placeholder="000000"
                 value={verifyCode}
                 onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ""))}
-                className="text-center text-lg tracking-widest"
               />
               {mfaError && <p className="text-xs text-destructive">{mfaError}</p>}
             </div>
@@ -320,8 +321,8 @@ export function SecurityForm({
               Cancel
             </Button>
             <Button
-              onClick={verifyMfaEnrollment}
               disabled={verifyCode.length !== 6 || mfaLoading}
+              onClick={verifyMfaEnrollment}
             >
               {mfaLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Verify & enable

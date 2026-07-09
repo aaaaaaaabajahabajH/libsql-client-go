@@ -39,7 +39,7 @@ export default function AuthLayout({
         />
 
         {/* Logo */}
-        <Link href="/" className="relative flex items-center gap-2.5">
+        <Link className="relative flex items-center gap-2.5" href="/">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
             <Bot className="h-5 w-5 text-white" />
           </div>

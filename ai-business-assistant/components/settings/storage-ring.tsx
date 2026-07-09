@@ -17,20 +17,20 @@ export function StorageRing({ label, value, max, unit = "", colorClass = "text-p
       <div className="relative h-24 w-24">
         <svg className="h-full w-full -rotate-90" viewBox="0 0 96 96">
           <circle
+            className="stroke-muted fill-none"
             cx="48"
             cy="48"
             r={radius}
             strokeWidth="8"
-            className="stroke-muted fill-none"
           />
           <circle
+            className={`fill-none transition-all duration-700 ${colorClass.replace("text-", "stroke-")}`}
             cx="48"
             cy="48"
             r={radius}
-            strokeWidth="8"
             strokeDasharray={`${dash} ${circumference}`}
             strokeLinecap="round"
-            className={`fill-none transition-all duration-700 ${colorClass.replace("text-", "stroke-")}`}
+            strokeWidth="8"
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">

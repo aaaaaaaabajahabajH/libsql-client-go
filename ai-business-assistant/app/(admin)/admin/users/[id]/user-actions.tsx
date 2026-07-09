@@ -1,17 +1,15 @@
 "use client";
 
-import * as React from "react";
-import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useRouter } from "next/navigation";
+import * as React from "react";
+
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  suspendUserAction,
+  deleteUserAction,
+  resetCreditsAction,
+  changePlanAction,
+} from "@/actions/admin";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +21,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -31,12 +30,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
-  suspendUserAction,
-  deleteUserAction,
-  resetCreditsAction,
-  changePlanAction,
-} from "@/actions/admin";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface UserActionsProps {
   userId: string;
@@ -90,7 +91,7 @@ export function UserActions({
         {/* Suspend / Unsuspend */}
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant={isSuspended ? "outline" : "outline"} size="sm" disabled={!!loading}>
+            <Button disabled={!!loading} size="sm" variant={isSuspended ? "outline" : "outline"}>
               {loading === "suspend" && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {isSuspended ? "Unsuspend" : "Suspend"}
             </Button>
@@ -120,19 +121,19 @@ export function UserActions({
         </AlertDialog>
 
         {/* Reset credits */}
-        <Button variant="outline" size="sm" onClick={() => setCreditsOpen(true)}>
+        <Button size="sm" variant="outline" onClick={() => setCreditsOpen(true)}>
           Reset credits
         </Button>
 
         {/* Change plan */}
-        <Button variant="outline" size="sm" onClick={() => setPlanOpen(true)}>
+        <Button size="sm" variant="outline" onClick={() => setPlanOpen(true)}>
           Change plan
         </Button>
 
         {/* Delete */}
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="destructive" size="sm" disabled={!!loading}>
+            <Button disabled={!!loading} size="sm" variant="destructive">
               {loading === "delete" && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Delete user
             </Button>
@@ -171,8 +172,8 @@ export function UserActions({
             <div className="space-y-1.5">
               <label className="text-sm font-medium">New balance</label>
               <Input
-                type="number"
                 min={0}
+                type="number"
                 value={newBalance}
                 onChange={(e) => setNewBalance(e.target.value)}
               />
@@ -180,11 +181,11 @@ export function UserActions({
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Monthly allowance (optional)</label>
               <Input
-                type="number"
                 min={0}
+                placeholder="Leave unchanged"
+                type="number"
                 value={newAllowance}
                 onChange={(e) => setNewAllowance(e.target.value)}
-                placeholder="Leave unchanged"
               />
             </div>
           </div>
@@ -216,7 +217,7 @@ export function UserActions({
           <DialogHeader>
             <DialogTitle>Change subscription plan</DialogTitle>
             <DialogDescription>
-              Changing the plan also updates the user's credit allowance.
+              Changing the plan also updates the user&apos;s credit allowance.
             </DialogDescription>
           </DialogHeader>
           <Select value={plan} onValueChange={setPlan}>

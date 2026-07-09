@@ -1,10 +1,11 @@
-import Link from "next/link";
 import { Check, X, Zap, ArrowRight, Star } from "lucide-react";
+import Link from "next/link";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { PLAN_CONFIGS } from "@/utils/constants";
 import { cn } from "@/lib/utils";
+import { PLAN_CONFIGS } from "@/utils/constants";
 
 const previewPlans = PLAN_CONFIGS.filter((p) =>
   ["free", "starter", "pro"].includes(p.id),
@@ -12,11 +13,11 @@ const previewPlans = PLAN_CONFIGS.filter((p) =>
 
 export function PricingPreview() {
   return (
-    <section id="pricing" className="py-20 sm:py-28">
+    <section className="py-20 sm:py-28" id="pricing">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16 space-y-4">
-          <Badge variant="secondary" className="text-xs font-semibold px-3 py-1">
+          <Badge className="text-xs font-semibold px-3 py-1" variant="secondary">
             Simple Pricing
           </Badge>
           <h2 className="text-3xl sm:text-5xl font-bold tracking-tight">
@@ -111,7 +112,7 @@ export function PricingPreview() {
 
         {/* View full pricing CTA */}
         <div className="mt-10 text-center">
-          <Button asChild variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground">
+          <Button asChild className="gap-2 text-muted-foreground hover:text-foreground" variant="ghost">
             <Link href="/pricing">
               View full pricing details
               <ArrowRight className="h-4 w-4" />

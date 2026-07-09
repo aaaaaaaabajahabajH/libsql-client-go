@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { getUserCreditsRow } from "@/services/credits";
+
 import { StorageView } from "./storage-view";
 
 export const metadata = { title: "Storage & Usage" };
@@ -31,13 +33,13 @@ export default async function StoragePage() {
 
   return (
     <StorageView
-      savedDocuments={savedCount ?? 0}
-      historyEntries={historyCount ?? 0}
-      creditsUsed={creditsRow?.total_used ?? 0}
       creditsAllowance={creditsRow?.monthly_allowance ?? 0}
       creditsBalance={creditsRow?.balance ?? 0}
+      creditsUsed={creditsRow?.total_used ?? 0}
+      historyEntries={historyCount ?? 0}
       isUnlimited={isUnlimited}
       resetAt={creditsRow?.reset_at ?? null}
+      savedDocuments={savedCount ?? 0}
     />
   );
 }

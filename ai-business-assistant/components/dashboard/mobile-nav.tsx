@@ -1,8 +1,5 @@
 "use client";
 
-import * as React from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 import {
   Bot,
   LayoutDashboard,
@@ -16,10 +13,13 @@ import {
   Menu,
   Zap,
 } from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import * as React from "react";
 
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { logoutAction } from "@/actions/auth";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -29,7 +29,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { logoutAction } from "@/actions/auth";
+import { cn } from "@/lib/utils";
 import type { DbPlanType } from "@/types/database";
 
 interface NavItem {
@@ -83,18 +83,18 @@ export function MobileNav({ plan, creditsBalance, creditsTotal, creditsPercentag
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-9 w-9 md:hidden" aria-label="Open menu">
+        <Button aria-label="Open menu" className="h-9 w-9 md:hidden" size="icon" variant="ghost">
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
 
-      <SheetContent side="left" className="w-72 p-0 flex flex-col bg-sidebar border-sidebar-border">
+      <SheetContent className="w-72 p-0 flex flex-col bg-sidebar border-sidebar-border" side="left">
         <SheetHeader className="px-4 pt-5 pb-4 border-b border-sidebar-border">
           <SheetTitle asChild>
             <Link
+              className="flex items-center gap-2.5"
               href="/dashboard"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5"
             >
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-accent">
                 <Bot className="h-5 w-5 text-sidebar-accent-foreground" />
@@ -115,14 +115,14 @@ export function MobileNav({ plan, creditsBalance, creditsTotal, creditsPercentag
             {mainNav.map((item) => (
               <Link
                 key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   isActive(item)
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent/20 hover:text-sidebar-foreground",
                 )}
+                href={item.href}
+                onClick={() => setOpen(false)}
               >
                 <item.icon className="h-4 w-4 shrink-0" />
                 {item.label}
@@ -139,22 +139,22 @@ export function MobileNav({ plan, creditsBalance, creditsTotal, creditsPercentag
             {bottomNav.map((item) => (
               <Link
                 key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   isActive(item)
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent/20 hover:text-sidebar-foreground",
                 )}
+                href={item.href}
+                onClick={() => setOpen(false)}
               >
                 <item.icon className="h-4 w-4 shrink-0" />
                 {item.label}
               </Link>
             ))}
             <button
-              onClick={handleLogout}
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+              onClick={handleLogout}
             >
               <LogOut className="h-4 w-4 shrink-0" />
               Sign Out
@@ -169,16 +169,16 @@ export function MobileNav({ plan, creditsBalance, creditsTotal, creditsPercentag
               <Zap className="h-3.5 w-3.5 text-sidebar-foreground/60" />
               <span className="text-xs font-medium text-sidebar-foreground/70">Credits</span>
             </div>
-            <Badge variant="secondary" className="text-[10px] capitalize">
+            <Badge className="text-[10px] capitalize" variant="secondary">
               {planLabels[plan]}
             </Badge>
           </div>
-          <Progress value={creditsPercentage} className="h-1.5" />
+          <Progress className="h-1.5" value={creditsPercentage} />
           <p className="text-[11px] text-sidebar-foreground/50">
             {creditsBalance.toLocaleString()} / {creditsTotal.toLocaleString()} remaining
           </p>
           {(plan === "free" || plan === "starter") && (
-            <Button asChild size="sm" className="w-full h-8 text-xs bg-sidebar-accent hover:bg-sidebar-accent/90 text-sidebar-accent-foreground">
+            <Button asChild className="w-full h-8 text-xs bg-sidebar-accent hover:bg-sidebar-accent/90 text-sidebar-accent-foreground" size="sm">
               <Link href="/pricing" onClick={() => setOpen(false)}>
                 Upgrade Plan
               </Link>

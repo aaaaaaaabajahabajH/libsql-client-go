@@ -1,11 +1,12 @@
 "use client";
 
-import * as React from "react";
-import Link from "next/link";
 import { Check, X, Zap, ArrowRight, Sparkles } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import * as React from "react";
+
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import type { PlanConfig } from "@/types";
 import type { DbPlanType } from "@/types/database";
 
@@ -135,15 +136,15 @@ export function PlanCard({
       {/* CTA */}
       {isAuthenticated ? (
         <Button
-          onClick={handleCta}
-          disabled={isCurrent}
-          variant={plan.highlighted ? "default" : "outline"}
           className={cn(
             "w-full mb-6 font-semibold",
             plan.highlighted && "shadow-glow-sm",
             isCurrent && "opacity-60 cursor-not-allowed",
             isDowngrade && "border-destructive/50 text-destructive hover:bg-destructive/10",
           )}
+          disabled={isCurrent}
+          variant={plan.highlighted ? "default" : "outline"}
+          onClick={handleCta}
         >
           {isCurrent ? (
             "Current Plan"
@@ -157,8 +158,8 @@ export function PlanCard({
       ) : (
         <Button
           asChild
-          variant={plan.highlighted ? "default" : "outline"}
           className={cn("w-full mb-6 font-semibold", plan.highlighted && "shadow-glow-sm")}
+          variant={plan.highlighted ? "default" : "outline"}
         >
           <Link href={plan.price === 0 ? "/register" : "/register"}>
             {plan.price === 0 ? "Start Free" : "Get Started"}

@@ -1,16 +1,17 @@
 "use client";
 
-import { useState } from "react";
 import { Bell, CheckCheck, Trash2, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { NotificationItem } from "@/components/notifications/notification-item";
+import { useState } from "react";
+
 import {
   markAllNotificationsReadAction,
   deleteAllNotificationsAction,
   fetchNotificationsAction,
 } from "@/actions/notifications";
+import { NotificationItem } from "@/components/notifications/notification-item";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { NotificationRow, DbNotificationType } from "@/types/database";
 
 interface NotificationsViewProps {
@@ -89,7 +90,7 @@ export function NotificationsView({
             {unreadCount > 0 && (
               <span>
                 {" "}·{" "}
-                <Badge variant="secondary" className="text-xs h-5 px-1.5">
+                <Badge className="text-xs h-5 px-1.5" variant="secondary">
                   {unreadCount} unread
                 </Badge>
               </span>
@@ -100,10 +101,10 @@ export function NotificationsView({
         <div className="flex items-center gap-2 shrink-0">
           {unreadCount > 0 && (
             <Button
-              variant="outline"
-              size="sm"
-              onClick={handleMarkAllRead}
               disabled={markingAll}
+              size="sm"
+              variant="outline"
+              onClick={handleMarkAllRead}
             >
               {markingAll ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
@@ -115,11 +116,11 @@ export function NotificationsView({
           )}
           {notifications.length > 0 && (
             <Button
-              variant="outline"
-              size="sm"
-              onClick={handleClearAll}
-              disabled={clearingAll}
               className="text-destructive hover:text-destructive"
+              disabled={clearingAll}
+              size="sm"
+              variant="outline"
+              onClick={handleClearAll}
             >
               {clearingAll ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
@@ -140,7 +141,7 @@ export function NotificationsView({
                 ? notifications.length
                 : notifications.filter((n) => n.type === t.value).length;
             return (
-              <TabsTrigger key={t.value} value={t.value} className="text-xs">
+              <TabsTrigger key={t.value} className="text-xs" value={t.value}>
                 {t.label}
                 {count > 0 && (
                   <span className="ml-1.5 text-muted-foreground tabular-nums">({count})</span>
@@ -173,7 +174,7 @@ export function NotificationsView({
 
       {notifications.length < total && (
         <div className="flex justify-center">
-          <Button variant="outline" onClick={handleLoadMore} disabled={loadingMore}>
+          <Button disabled={loadingMore} variant="outline" onClick={handleLoadMore}>
             {loadingMore && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
             Load more
           </Button>

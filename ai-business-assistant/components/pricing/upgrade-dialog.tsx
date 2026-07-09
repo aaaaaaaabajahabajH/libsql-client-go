@@ -1,7 +1,8 @@
 "use client";
 
-import * as React from "react";
 import { Loader2, Zap, ArrowRight, AlertTriangle } from "lucide-react";
+import * as React from "react";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,8 +14,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { PLAN_CONFIGS } from "@/utils/constants";
 import type { DbPlanType } from "@/types/database";
+import { PLAN_CONFIGS } from "@/utils/constants";
 
 interface UpgradeDialogProps {
   open: boolean;
@@ -124,16 +125,16 @@ export function UpgradeDialog({
         <AlertDialogFooter className="mt-2">
           <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
           <AlertDialogAction
-            onClick={(e) => {
-              e.preventDefault();
-              handleConfirm();
-            }}
-            disabled={loading}
             className={cn(
               "font-semibold",
               isDowngrade &&
                 "bg-amber-500 hover:bg-amber-600 text-white border-amber-500",
             )}
+            disabled={loading}
+            onClick={(e) => {
+              e.preventDefault();
+              handleConfirm();
+            }}
           >
             {loading ? (
               <>

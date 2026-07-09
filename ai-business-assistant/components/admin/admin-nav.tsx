@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
@@ -11,6 +9,9 @@ import {
   Server,
   ScrollText,
 } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -34,13 +35,13 @@ export function AdminNav() {
         return (
           <Link
             key={item.href}
-            href={item.href}
             className={cn(
               "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
               active
                 ? "bg-primary/10 text-primary"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
+            href={item.href}
           >
             <Icon className="h-4 w-4 shrink-0" />
             {item.label}

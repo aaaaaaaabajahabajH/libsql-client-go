@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import {
   Copy,
   Check,
@@ -10,13 +9,17 @@ import {
   AlertCircle,
   Sparkles,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { StreamingOutput } from "./streaming-output";
-import { SaveDialog } from "./save-dialog";
+import * as React from "react";
+
+
 import { saveDocumentAction } from "@/actions/documents";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import type { GenerationStatus } from "@/hooks/use-tool-generation";
+import { cn } from "@/lib/utils";
 import type { DbToolType } from "@/types/database";
+
+import { SaveDialog } from "./save-dialog";
+import { StreamingOutput } from "./streaming-output";
 
 interface ToolOutputProps {
   status: GenerationStatus;
@@ -84,7 +87,7 @@ export function ToolOutput({
                 <p className="text-xs opacity-80">{error}</p>
               </div>
             </div>
-            <Button variant="outline" size="sm" className="mt-4" onClick={onRegenerate}>
+            <Button className="mt-4" size="sm" variant="outline" onClick={onRegenerate}>
               <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
               Try Again
             </Button>
@@ -93,9 +96,9 @@ export function ToolOutput({
 
         {(isGenerating || isDone) && (
           <StreamingOutput
-            text={output}
-            isStreaming={isGenerating}
             className="absolute inset-0 p-4 rounded-lg bg-muted/20 border border-border/50"
+            isStreaming={isGenerating}
+            text={output}
           />
         )}
       </div>
@@ -105,10 +108,10 @@ export function ToolOutput({
         <div className="flex items-center justify-between gap-2 pt-3 mt-3 border-t border-border/50">
           <div className="flex items-center gap-2">
             <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCopy}
               disabled={isGenerating}
+              size="sm"
+              variant="outline"
+              onClick={handleCopy}
             >
               {copied ? (
                 <>
@@ -124,10 +127,10 @@ export function ToolOutput({
             </Button>
 
             <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSaveDialogOpen(true)}
               disabled={isGenerating || saved}
+              size="sm"
+              variant="outline"
+              onClick={() => setSaveDialogOpen(true)}
             >
               {saved ? (
                 <>
@@ -144,11 +147,11 @@ export function ToolOutput({
           </div>
 
           <Button
-            variant="ghost"
-            size="sm"
-            onClick={onRegenerate}
-            disabled={isGenerating}
             className="text-muted-foreground"
+            disabled={isGenerating}
+            size="sm"
+            variant="ghost"
+            onClick={onRegenerate}
           >
             <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
             Regenerate
@@ -157,9 +160,9 @@ export function ToolOutput({
       )}
 
       <SaveDialog
+        defaultTitle={defaultTitle}
         open={saveDialogOpen}
         onOpenChange={setSaveDialogOpen}
-        defaultTitle={defaultTitle}
         onSave={handleSave}
       />
     </div>

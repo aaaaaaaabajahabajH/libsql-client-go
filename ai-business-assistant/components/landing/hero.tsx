@@ -1,7 +1,8 @@
-import Link from "next/link";
 import { ArrowRight, Play, Sparkles, Zap, BarChart3 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 /* ─── Dashboard mockup ───────────────────────────────────── */
 
@@ -144,8 +145,8 @@ export function Hero() {
         <div className="flex flex-col items-center text-center gap-8">
           {/* Badge */}
           <Badge
-            variant="secondary"
             className="gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-full border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+            variant="secondary"
           >
             <Sparkles className="h-3 w-3" />
             6 AI tools in one platform
@@ -168,14 +169,14 @@ export function Hero() {
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-sm sm:max-w-none sm:w-auto">
-            <Button asChild size="lg" className="h-12 px-8 text-base font-semibold shadow-glow w-full sm:w-auto">
+            <Button asChild className="h-12 px-8 text-base font-semibold shadow-glow w-full sm:w-auto" size="lg">
               <Link href="/register">
                 <Zap className="h-4 w-4 mr-2" />
                 Start for Free
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="h-12 px-8 text-base w-full sm:w-auto">
+            <Button asChild className="h-12 px-8 text-base w-full sm:w-auto" size="lg" variant="outline">
               <a href="#how-it-works">
                 <Play className="h-4 w-4 mr-2 fill-current" />
                 See How It Works

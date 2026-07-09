@@ -20,16 +20,16 @@ export function DonutChart({ data, colors = DEFAULT_COLORS }: DonutChartProps) {
   const total = data.reduce((s, d) => s + d.value, 0);
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer height="100%" width="100%">
       <PieChart>
         <Pie
-          data={data}
           cx="50%"
           cy="45%"
+          data={data}
+          dataKey="value"
           innerRadius="55%"
           outerRadius="75%"
           paddingAngle={3}
-          dataKey="value"
         >
           {data.map((_, i) => (
             <Cell key={i} fill={colors[i % colors.length]} />
@@ -49,11 +49,11 @@ export function DonutChart({ data, colors = DEFAULT_COLORS }: DonutChartProps) {
           }}
         />
         <Legend
-          iconType="circle"
-          iconSize={8}
           formatter={(value) => (
             <span style={{ fontSize: 12 }}>{value}</span>
           )}
+          iconSize={8}
+          iconType="circle"
         />
       </PieChart>
     </ResponsiveContainer>

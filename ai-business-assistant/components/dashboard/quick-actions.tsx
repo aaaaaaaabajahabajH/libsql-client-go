@@ -1,5 +1,6 @@
-import Link from "next/link";
 import { Share2, FileText, Mail, Receipt, PenTool, Globe } from "lucide-react";
+import Link from "next/link";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -67,13 +68,13 @@ export function QuickActions() {
           {actions.map((action) => (
             <Link
               key={action.href}
-              href={action.href}
               className={cn(
                 "flex flex-col items-center gap-2 rounded-xl p-3 transition-all duration-200",
                 "bg-gradient-to-br border border-transparent hover:border-border/50",
                 "hover:shadow-sm group",
                 action.gradient,
               )}
+              href={action.href}
             >
               <action.icon className={cn("h-5 w-5 transition-transform group-hover:scale-110", action.iconColor)} />
               <span className="text-[11px] font-medium text-center leading-tight">{action.label}</span>

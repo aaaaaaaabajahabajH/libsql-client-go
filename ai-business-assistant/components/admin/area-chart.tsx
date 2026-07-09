@@ -29,29 +29,29 @@ export function AreaChart({
   const step = Math.max(1, Math.floor(data.length / maxTicks));
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer height="100%" width="100%">
       <RechartsAreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
         <defs>
-          <linearGradient id={`grad-${color.replace("#", "")}`} x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={`grad-${color.replace("#", "")}`} x1="0" x2="0" y1="0" y2="1">
             <stop offset="5%" stopColor={color} stopOpacity={0.2} />
             <stop offset="95%" stopColor={color} stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="currentColor" strokeOpacity={0.08} />
+        <CartesianGrid stroke="currentColor" strokeDasharray="3 3" strokeOpacity={0.08} />
         <XAxis
+          axisLine={false}
+          className="text-muted-foreground"
           dataKey="date"
+          interval={step - 1}
           tick={{ fontSize: 11 }}
           tickLine={false}
-          axisLine={false}
-          interval={step - 1}
-          className="text-muted-foreground"
         />
         <YAxis
-          tick={{ fontSize: 11 }}
-          tickLine={false}
+          allowDecimals={false}
           axisLine={false}
           className="text-muted-foreground"
-          allowDecimals={false}
+          tick={{ fontSize: 11 }}
+          tickLine={false}
         />
         <Tooltip
           contentStyle={{
@@ -67,13 +67,13 @@ export function AreaChart({
           ]}
         />
         <Area
-          type="monotone"
+          activeDot={{ r: 4, strokeWidth: 0 }}
           dataKey="value"
+          dot={false}
+          fill={`url(#grad-${color.replace("#", "")})`}
           stroke={color}
           strokeWidth={2}
-          fill={`url(#grad-${color.replace("#", "")})`}
-          dot={false}
-          activeDot={{ r: 4, strokeWidth: 0 }}
+          type="monotone"
         />
       </RechartsAreaChart>
     </ResponsiveContainer>

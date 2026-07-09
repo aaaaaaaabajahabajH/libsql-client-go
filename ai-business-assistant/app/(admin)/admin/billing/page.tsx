@@ -1,9 +1,10 @@
 import { DollarSign, TrendingUp, BarChart2, Percent } from "lucide-react";
-import { StatCard } from "@/components/admin/stat-card";
-import { ChartCard } from "@/components/admin/chart-card";
+
 import { AreaChart } from "@/components/admin/area-chart";
+import { ChartCard } from "@/components/admin/chart-card";
 import { DonutChart } from "@/components/admin/donut-chart";
 import { PageHeader } from "@/components/admin/page-header";
+import { StatCard } from "@/components/admin/stat-card";
 import {
   getAdminDashboardStats,
   getDailyRevenue,
@@ -35,51 +36,51 @@ export default async function BillingPage() {
 
   return (
     <>
-      <PageHeader title="Billing Analytics" description="Revenue and subscription metrics" />
+      <PageHeader description="Revenue and subscription metrics" title="Billing Analytics" />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard
-          label="MRR"
-          value={`$${stats.mrr.toLocaleString()}`}
           icon={DollarSign}
-          variant="success"
+          label="MRR"
           subtext="Monthly recurring revenue"
-        />
-        <StatCard
-          label="ARR"
-          value={`$${stats.arr.toLocaleString()}`}
-          icon={TrendingUp}
+          value={`$${stats.mrr.toLocaleString()}`}
           variant="success"
+        />
+        <StatCard
+          icon={TrendingUp}
+          label="ARR"
           subtext="Annual recurring revenue"
+          value={`$${stats.arr.toLocaleString()}`}
+          variant="success"
         />
         <StatCard
-          label="ARPU"
-          value={`$${arpu.toFixed(2)}`}
           icon={BarChart2}
+          label="ARPU"
           subtext="Avg revenue per paid user"
+          value={`$${arpu.toFixed(2)}`}
         />
         <StatCard
-          label="Conversion Rate"
-          value={`${conversionRate.toFixed(1)}%`}
           icon={Percent}
-          variant={conversionRate > 5 ? "success" : "default"}
+          label="Conversion Rate"
           subtext={`${stats.paidUsers} of ${totalUsers} users`}
+          value={`${conversionRate.toFixed(1)}%`}
+          variant={conversionRate > 5 ? "success" : "default"}
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <ChartCard
-          title="New Subscription Revenue (30d)"
           description="Revenue from new subscriptions each day"
           height={220}
+          title="New Subscription Revenue (30d)"
         >
-          <AreaChart data={dailyRevenue} label="Revenue" color="#10b981" valuePrefix="$" />
+          <AreaChart color="#10b981" data={dailyRevenue} label="Revenue" valuePrefix="$" />
         </ChartCard>
 
         <ChartCard
-          title="Revenue by Plan"
           description="Monthly recurring revenue per plan"
           height={220}
+          title="Revenue by Plan"
         >
           {revenueByPlan.length > 0 ? (
             <DonutChart data={revenueByPlan} />

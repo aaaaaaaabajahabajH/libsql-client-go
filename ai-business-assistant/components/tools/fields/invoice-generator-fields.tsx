@@ -2,9 +2,10 @@
 
 import { Controller } from "react-hook-form";
 import type { UseFormReturn } from "react-hook-form";
-import { Label } from "@/components/ui/label";
+
+import type { InvoiceGeneratorFormValues } from "@/actions/tools";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -12,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { InvoiceGeneratorFormValues } from "@/actions/tools";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Props {
   form: UseFormReturn<InvoiceGeneratorFormValues>;
@@ -43,8 +44,8 @@ export function InvoiceGeneratorFields({ form }: Props) {
         <Label htmlFor="ig-services">Services / Products Provided</Label>
         <Textarea
           id="ig-services"
-          rows={4}
           placeholder="Describe the services rendered. Include quantities if relevant. e.g. Web design (40 hrs), Brand identity package, Monthly retainer..."
+          rows={4}
           {...register("services")}
         />
         {errors.services && (

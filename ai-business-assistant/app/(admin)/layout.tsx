@@ -1,8 +1,9 @@
-import { redirect } from "next/navigation";
-import Link from "next/link";
 import { ShieldCheck, ArrowLeft } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+
 import { AdminNav } from "@/components/admin/admin-nav";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -44,8 +45,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <p className="text-[11px] text-muted-foreground truncate">{profile.email}</p>
           </div>
           <Link
-            href="/dashboard"
             className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            href="/dashboard"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             Back to app

@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { Switch } from "@/components/ui/switch";
+
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
 interface BillingToggleProps {
@@ -24,10 +25,10 @@ export function BillingToggle({ isAnnual, onToggle, className }: BillingTogglePr
       </span>
 
       <Switch
-        checked={isAnnual}
-        onCheckedChange={onToggle}
         aria-label="Toggle annual billing"
+        checked={isAnnual}
         className="data-[state=checked]:bg-primary"
+        onCheckedChange={onToggle}
       />
 
       <div className="flex items-center gap-2">
@@ -40,13 +41,13 @@ export function BillingToggle({ isAnnual, onToggle, className }: BillingTogglePr
           Annual
         </span>
         <Badge
-          variant="secondary"
           className={cn(
             "text-xs font-semibold px-2 py-0.5 transition-all duration-300",
             isAnnual
               ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
               : "opacity-60",
           )}
+          variant="secondary"
         >
           Save 20%
         </Badge>
