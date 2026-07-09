@@ -2,79 +2,22 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
+import {
+  LoginSchema,
+  RegisterSchema,
+  ForgotPasswordSchema,
+  ResetPasswordSchema,
+  type LoginFormValues,
+  type RegisterFormValues,
+  type ForgotPasswordFormValues,
+  type ResetPasswordFormValues,
+} from "@/lib/validations/auth";
 import type { AsyncActionResult } from "@/types";
 
-/* ─── Validation schemas ─────────────────────────────────────── */
-
-export const LoginSchema = z.object({
-  email: z
-    .string()
-    .min(1, "Email is required")
-    .email("Please enter a valid email address"),
-  password: z
-    .string()
-    .min(1, "Password is required")
-    .min(8, "Password must be at least 8 characters"),
-});
-
-export const RegisterSchema = z
-  .object({
-    fullName: z
-      .string()
-      .min(1, "Full name is required")
-      .min(2, "Name must be at least 2 characters")
-      .max(100, "Name must not exceed 100 characters"),
-    email: z
-      .string()
-      .min(1, "Email is required")
-      .email("Please enter a valid email address"),
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-      .regex(/[0-9]/, "Password must contain at least one number"),
-    confirmPassword: z.string().min(1, "Please confirm your password"),
-    acceptTerms: z.literal(true, {
-      errorMap: () => ({ message: "You must accept the terms and conditions" }),
-    }),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
-
-export const ForgotPasswordSchema = z.object({
-  email: z
-    .string()
-    .min(1, "Email is required")
-    .email("Please enter a valid email address"),
-});
-
-export const ResetPasswordSchema = z
-  .object({
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-      .regex(/[0-9]/, "Password must contain at least one number"),
-    confirmPassword: z.string().min(1, "Please confirm your password"),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
-
-/* ─── Inferred form types ────────────────────────────────────── */
-
-export type LoginFormValues = z.infer<typeof LoginSchema>;
-export type RegisterFormValues = z.infer<typeof RegisterSchema>;
-export type ForgotPasswordFormValues = z.infer<typeof ForgotPasswordSchema>;
-export type ResetPasswordFormValues = z.infer<typeof ResetPasswordSchema>;
-
-/* ─── Server actions ─────────────────────────────────────────── */
+export type { LoginFormValues, RegisterFormValues, ForgotPasswordFormValues, ResetPasswordFormValues };
+export { LoginSchema, RegisterSchema, ForgotPasswordSchema, ResetPasswordSchema };
 
 export async function loginAction(
   values: LoginFormValues,
@@ -153,8 +96,7 @@ export async function forgotPasswordAction(
   }
 
   const supabase = await createClient();
-  const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
   const { error } = await supabase.auth.resetPasswordForEmail(
     parsed.data.email,

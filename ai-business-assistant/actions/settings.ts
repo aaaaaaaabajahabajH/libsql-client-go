@@ -115,8 +115,11 @@ export async function uploadAvatar(formData: FormData): AsyncActionResult<{ url:
     if (file.size > 2 * 1024 * 1024) return { success: false, error: "File must be under 2 MB" };
 
     const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-    const allowed = ["jpg", "jpeg", "png", "webp", "gif"];
-    if (!allowed.includes(ext)) return { success: false, error: "Unsupported file type" };
+    const allowedExts = ["jpg", "jpeg", "png", "webp", "gif"];
+    const allowedMimes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowedExts.includes(ext) || !allowedMimes.includes(file.type)) {
+      return { success: false, error: "Unsupported file type. Please upload a JPEG, PNG, WebP, or GIF." };
+    }
 
     const path = `${user.id}/avatar.${ext}`;
     const { error: uploadError } = await supabase.storage

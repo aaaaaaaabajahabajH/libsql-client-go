@@ -1,6 +1,6 @@
 import { baseTemplate, h1, subtitle, paragraph, ctaButton, divider, infoBox } from "./base";
 
-const APP_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://example.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 export interface AiCompletedEmailData {
   name: string;
@@ -46,7 +46,7 @@ export function aiCompletedEmail(
 
     ${divider()}
 
-    ${paragraph(`Keep the momentum going! Head to your <a href="${APP_URL}/dashboard/tools" style="color:#6366f1;text-decoration:none;">AI tools</a> to create more content.`)}
+    ${paragraph(`Keep the momentum going! Head to your <a href="${APP_URL}/tools" style="color:#6366f1;text-decoration:none;">AI tools</a> to create more content.`)}
   `;
 
   return {

@@ -165,6 +165,6 @@ export const PLAN_CONFIGS: PlanConfig[] = [
 
 /* ─── Routes ────────────────────────────────────────────────── */
 
-export const PROTECTED_ROUTES = ["/dashboard", "/profile", "/settings", "/admin"];
+export const PROTECTED_ROUTES = ["/dashboard", "/profile", "/settings", "/admin", "/billing", "/notifications", "/tools"];
 export const AUTH_ROUTES = ["/login", "/register", "/forgot-password", "/reset-password"];
 export const PUBLIC_ROUTES = ["/", "/pricing"];

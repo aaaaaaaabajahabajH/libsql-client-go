@@ -1,6 +1,6 @@
 import { baseTemplate, h1, subtitle, paragraph, ctaButton, divider, infoBox } from "./base";
 
-const APP_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://example.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 export interface SubscriptionActivatedEmailData {
   name: string;
@@ -53,7 +53,7 @@ export function subscriptionActivatedEmail(
 
     ${divider()}
 
-    ${paragraph(`Manage your subscription, download invoices, or update your payment method in your <a href="${APP_URL}/dashboard/billing" style="color:#6366f1;text-decoration:none;">billing settings</a>.`)}
+    ${paragraph(`Manage your subscription, download invoices, or update your payment method in your <a href="${APP_URL}/billing" style="color:#6366f1;text-decoration:none;">billing settings</a>.`)}
   `;
 
   return {

@@ -1,4 +1,3 @@
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { NotificationRow, DbNotificationType } from "@/types/database";
 
@@ -59,8 +58,8 @@ export async function getUnreadCount(userId: string): Promise<number> {
 }
 
 export async function markNotificationRead(notificationId: string, userId: string): Promise<void> {
-  const supabase = await createClient();
-  await supabase
+  const admin = createAdminClient();
+  await admin
     .from("notifications")
     .update({ is_read: true })
     .eq("id", notificationId)
@@ -77,8 +76,8 @@ export async function markAllNotificationsRead(userId: string): Promise<void> {
 }
 
 export async function deleteNotification(notificationId: string, userId: string): Promise<void> {
-  const supabase = await createClient();
-  await supabase
+  const admin = createAdminClient();
+  await admin
     .from("notifications")
     .delete()
     .eq("id", notificationId)

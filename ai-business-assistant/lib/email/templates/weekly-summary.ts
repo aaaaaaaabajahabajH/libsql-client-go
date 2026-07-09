@@ -1,6 +1,6 @@
 import { baseTemplate, h1, subtitle, paragraph, ctaButton, divider, infoBox } from "./base";
 
-const APP_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://example.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 export interface WeeklySummaryTool {
   name: string;
@@ -67,7 +67,7 @@ export function weeklySummaryEmail(
 
     ${divider()}
 
-    ${paragraph(`Check your full <a href="${APP_URL}/dashboard/history" style="color:#6366f1;text-decoration:none;">history</a> and <a href="${APP_URL}/dashboard/saved" style="color:#6366f1;text-decoration:none;">saved documents</a> for everything you've created.`)}
+    ${paragraph(`Check your full <a href="${APP_URL}/dashboard" style="color:#6366f1;text-decoration:none;">history</a> and <a href="${APP_URL}/dashboard" style="color:#6366f1;text-decoration:none;">saved documents</a> for everything you've created.`)}
   `;
 
   return {

@@ -1,6 +1,6 @@
 import { baseTemplate, h1, subtitle, paragraph, ctaButton, divider, infoBox } from "./base";
 
-const APP_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://example.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 export interface CreditsResetEmailData {
   name: string;
@@ -34,11 +34,11 @@ export function creditsResetEmail(
 
     ${paragraph(`Your ${isUnlimited ? "unlimited" : data.newBalance.toLocaleString() + " monthly"} credits are ready to fuel your creativity. Start creating amazing content with our AI tools.`)}
 
-    ${ctaButton("Start Creating", `${APP_URL}/dashboard/tools`)}
+    ${ctaButton("Start Creating", `${APP_URL}/tools`)}
 
     ${divider()}
 
-    ${paragraph(`Want more credits or faster processing? <a href="${APP_URL}/dashboard/billing" style="color:#6366f1;text-decoration:none;">Explore our plans</a> to unlock unlimited AI power.`)}
+    ${paragraph(`Want more credits or faster processing? <a href="${APP_URL}/billing" style="color:#6366f1;text-decoration:none;">Explore our plans</a> to unlock unlimited AI power.`)}
   `;
 
   return {
