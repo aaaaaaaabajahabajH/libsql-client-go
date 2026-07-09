@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import {
   buildDashboardRedirectUrl,
   buildLoginRedirectUrl,
+  getClientIp,
   isApiRoute,
   isAuthRoute,
   isProtectedRoute,
@@ -13,7 +14,6 @@ import {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip static assets and Next.js internals immediately
   if (isStaticAsset(pathname) || pathname.startsWith("/_next/")) {
     return NextResponse.next();
   }
@@ -43,37 +43,29 @@ export async function middleware(request: NextRequest) {
     },
   );
 
-  // Refresh the session — this is required to keep tokens alive
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // API routes: let them handle their own auth
   if (isApiRoute(pathname)) {
+    response.headers.set("x-request-id", crypto.randomUUID());
     return response;
   }
 
-  // Protected route — unauthenticated user → redirect to /login
   if (isProtectedRoute(pathname) && !user) {
     return NextResponse.redirect(buildLoginRedirectUrl(request));
   }
 
-  // Auth route — already authenticated user → redirect to /dashboard
   if (isAuthRoute(pathname) && user) {
     return NextResponse.redirect(buildDashboardRedirectUrl(request));
   }
+
+  response.headers.set("x-request-id", crypto.randomUUID());
+  response.headers.set("x-client-ip", getClientIp(request));
 
   return response;
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths EXCEPT:
-     * - _next/static (static files)
-     * - _next/image (image optimization)
-     * - favicon.ico
-     */
-    "/((?!_next/static|_next/image|favicon.ico).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
