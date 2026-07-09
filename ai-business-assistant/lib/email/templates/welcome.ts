@@ -1,6 +1,6 @@
 import { baseTemplate, h1, subtitle, paragraph, ctaButton, divider } from "./base";
 
-const APP_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://example.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "AI Business Suite";
 
 export interface WelcomeEmailData {

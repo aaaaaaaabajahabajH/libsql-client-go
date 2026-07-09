@@ -1,6 +1,6 @@
 import { baseTemplate, h1, subtitle, paragraph, ctaButton, divider, infoBox, warningBox } from "./base";
 
-const APP_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://example.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 export interface SubscriptionCancelledEmailData {
   name: string;
@@ -30,7 +30,7 @@ export function subscriptionCancelledEmail(
 
     ${paragraph("Changed your mind? You can reactivate your subscription at any time from your billing settings — you won't lose any of your saved content.")}
 
-    ${ctaButton("Reactivate Subscription", `${APP_URL}/dashboard/billing`)}
+    ${ctaButton("Reactivate Subscription", `${APP_URL}/billing`)}
 
     ${divider()}
 

@@ -1,6 +1,6 @@
 import { baseTemplate, h1, subtitle, paragraph, ctaButton, divider, warningBox, infoBox } from "./base";
 
-const APP_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://example.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 export interface PaymentFailedEmailData {
   name: string;
@@ -35,13 +35,13 @@ export function paymentFailedEmail(
 
     ${paragraph("Your subscription is still active, but if we can't collect payment, your account will be downgraded to the Free plan. Please update your payment details to avoid any interruption.")}
 
-    ${ctaButton("Update Payment Method", `${APP_URL}/dashboard/billing`)}
+    ${ctaButton("Update Payment Method", `${APP_URL}/billing`)}
 
     ${divider()}
 
     <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6;">
       Common reasons for failed payments: card expired, insufficient funds, or billing address mismatch.
-      <a href="${APP_URL}/dashboard/billing" style="color:#6366f1;text-decoration:none;">Update your card details</a> to resolve this.
+      <a href="${APP_URL}/billing" style="color:#6366f1;text-decoration:none;">Update your card details</a> to resolve this.
     </p>
   `;
 

@@ -1,3 +1,4 @@
+import { sanitizeSearchQuery } from "@/lib/sanitize";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ProfileRow, SubscriptionRow, CreditsRow, DbPlanType } from "@/types/database";
 
@@ -33,8 +34,9 @@ export async function listAdminUsers(
     .select("*", { count: "exact" });
 
   if (search) {
+    const safe = sanitizeSearchQuery(search);
     query = query.or(
-      `email.ilike.%${search}%,full_name.ilike.%${search}%,username.ilike.%${search}%`,
+      `email.ilike.%${safe}%,full_name.ilike.%${safe}%,username.ilike.%${safe}%`,
     );
   }
   if (plan !== "all") {

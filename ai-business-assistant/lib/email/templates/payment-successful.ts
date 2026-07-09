@@ -1,6 +1,6 @@
 import { baseTemplate, h1, subtitle, paragraph, ctaButton, divider, infoBox } from "./base";
 
-const APP_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://example.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 export interface PaymentSuccessfulEmailData {
   name: string;
@@ -39,12 +39,12 @@ export function paymentSuccessfulEmail(
     ${
       data.invoiceUrl
         ? ctaButton("Download Invoice", data.invoiceUrl)
-        : ctaButton("View Billing", `${APP_URL}/dashboard/billing`)
+        : ctaButton("View Billing", `${APP_URL}/billing`)
     }
 
     ${divider()}
 
-    ${paragraph(`Questions about your invoice? <a href="${APP_URL}/dashboard/billing" style="color:#6366f1;text-decoration:none;">Visit your billing page</a> or reply to this email.`)}
+    ${paragraph(`Questions about your invoice? <a href="${APP_URL}/billing" style="color:#6366f1;text-decoration:none;">Visit your billing page</a> or reply to this email.`)}
   `;
 
   return {

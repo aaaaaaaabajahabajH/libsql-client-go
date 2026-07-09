@@ -34,7 +34,10 @@ function checkEnvironment(): ServiceCheck {
   ];
   const missing = required.filter((key) => !process.env[key]);
   if (missing.length > 0) {
-    return { status: "down", message: `Missing env vars: ${missing.join(", ")}` };
+    const detail = process.env.NODE_ENV === "development"
+      ? `Missing env vars: ${missing.join(", ")}`
+      : "Environment misconfigured";
+    return { status: "down", message: detail };
   }
   return { status: "ok" };
 }

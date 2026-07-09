@@ -5,7 +5,6 @@ import { getProvider, buildPrompt } from "@/lib/ai";
 import { rateLimit, RATE_LIMIT_CONFIGS } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { saveHistory } from "@/services/history";
 import type { CreditsRow, DbToolType, Json } from "@/types/database";
 import { TOOL_CREDIT_COSTS } from "@/utils/constants";
 
@@ -87,6 +86,23 @@ export async function POST(req: NextRequest) {
 
   const provider = getProvider();
 
+  // Deduct credits before streaming to prevent concurrent over-spend.
+  // deduct_credits uses SELECT FOR UPDATE to serialize concurrent calls for the
+  // same user. If the SQL function returns false the balance was exhausted by a
+  // concurrent request between our read above and this call.
+  const adminClient = createAdminClient();
+  const { data: deducted } = await adminClient.rpc(
+    "deduct_credits",
+    { p_user_id: user.id, p_amount: creditCost } as unknown as { p_user_id: string; p_amount: number },
+  );
+
+  if (!deducted) {
+    return errorResponse(
+      `Insufficient credits. You need ${creditCost} credits but have ${credits.balance}.`,
+      402,
+    );
+  }
+
   let providerStream: ReadableStream<string>;
   try {
     providerStream = await provider.stream(prompt);
@@ -113,22 +129,18 @@ export async function POST(req: NextRequest) {
         controller.close();
 
         if (fullContent.trim()) {
-          const adminClient = createAdminClient();
-
-          await Promise.all([
-            adminClient.rpc(
-              "deduct_credits",
-              { p_user_id: userId, p_amount: creditCost } as unknown as { p_user_id: string; p_amount: number },
-            ),
-            saveHistory({
+          // Use adminClient for history insert — cookie context may be unavailable
+          // inside the post-stream async callback.
+          await adminClient
+            .from("history")
+            .insert({
               user_id: userId,
               tool: tool as DbToolType,
               title,
               input: input as unknown as Json,
               output: fullContent,
               credits_used: creditCost,
-            }),
-          ]);
+            });
         }
       } catch (err) {
         controller.error(err);

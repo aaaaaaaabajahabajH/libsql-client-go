@@ -2,6 +2,7 @@ import type { AIProvider, AIRequest } from "./types";
 
 const DEFAULT_MODEL = "gpt-4o-mini";
 const API_URL = "https://api.openai.com/v1/chat/completions";
+const STREAM_TIMEOUT_MS = 55_000; // 55 s — leaves buffer before maxDuration=60
 
 interface OpenAIChunk {
   choices: Array<{
@@ -19,23 +20,32 @@ export class OpenAIProvider implements AIProvider {
 
     const model = process.env.OPENAI_MODEL ?? DEFAULT_MODEL;
 
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        stream: true,
-        max_tokens: request.maxTokens,
-        temperature: request.temperature,
-        messages: [
-          { role: "system", content: request.systemPrompt },
-          { role: "user", content: request.userPrompt },
-        ],
-      }),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS);
+
+    let response: Response;
+    try {
+      response = await fetch(API_URL, {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          stream: true,
+          max_tokens: request.maxTokens,
+          temperature: request.temperature,
+          messages: [
+            { role: "system", content: request.systemPrompt },
+            { role: "user", content: request.userPrompt },
+          ],
+        }),
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!response.ok) {
       const body = await response.text();
@@ -47,14 +57,23 @@ export class OpenAIProvider implements AIProvider {
     const decoder = new TextDecoder();
 
     return new ReadableStream<string>({
-      async start(controller) {
+      async start(ctrl) {
         const reader = response.body!.getReader();
         let buffer = "";
 
+        // Per-chunk read timeout — prevents indefinite hangs mid-stream.
+        let chunkTimer: ReturnType<typeof setTimeout> | undefined;
+        const resetChunkTimer = () => {
+          clearTimeout(chunkTimer);
+          chunkTimer = setTimeout(() => reader.cancel(), STREAM_TIMEOUT_MS);
+        };
+
         try {
+          resetChunkTimer();
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
+            resetChunkTimer();
 
             buffer += decoder.decode(value, { stream: true });
             const lines = buffer.split("\n");
@@ -64,22 +83,23 @@ export class OpenAIProvider implements AIProvider {
               if (!line.startsWith("data: ")) continue;
               const data = line.slice(6).trim();
               if (data === "[DONE]") {
-                controller.close();
+                ctrl.close();
                 return;
               }
               try {
                 const chunk = JSON.parse(data) as OpenAIChunk;
                 const text = chunk.choices[0]?.delta?.content;
-                if (text) controller.enqueue(text);
+                if (text) ctrl.enqueue(text);
               } catch {
                 // Skip malformed SSE chunks
               }
             }
           }
-          controller.close();
+          ctrl.close();
         } catch (err) {
-          controller.error(err);
+          ctrl.error(err);
         } finally {
+          clearTimeout(chunkTimer);
           reader.releaseLock();
         }
       },
