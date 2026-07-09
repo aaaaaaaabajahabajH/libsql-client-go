@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { buildCreditsState } from "@/services/credits";
+import { getUnreadCount } from "@/services/notifications";
 import { DashboardHeader } from "@/components/dashboard/header";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import type { DbPlanType, ProfileRow, CreditsRow } from "@/types/database";
@@ -20,7 +21,7 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  const [profileResult, creditsResult] = await Promise.all([
+  const [profileResult, creditsResult, unreadCount] = await Promise.all([
     supabase
       .from("profiles")
       .select("*")
@@ -31,6 +32,7 @@ export default async function DashboardLayout({
       .select("*")
       .eq("user_id", user.id)
       .single<CreditsRow>(),
+    getUnreadCount(user.id),
   ]);
 
   const profile = profileResult.data;
@@ -67,6 +69,7 @@ export default async function DashboardLayout({
           creditsBalance={creditsState.balance}
           creditsTotal={monthlyAllowance}
           creditsPercentage={creditsState.percentage}
+          unreadNotificationCount={unreadCount}
         />
 
         <main className="flex-1 overflow-y-auto">
