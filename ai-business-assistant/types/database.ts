@@ -16,6 +16,12 @@ export type Json =
 
 export type DbRole = "user" | "admin" | "superadmin";
 
+export type DbEmailStatus = "pending" | "sent" | "failed" | "bounced";
+
+export type DbNotificationType = "billing" | "ai" | "security" | "product";
+
+export type DbEmailJobStatus = "queued" | "processing" | "sent" | "failed";
+
 export type DbLogType = "activity" | "auth" | "billing" | "ai" | "error";
 
 export type DbPlanType = "free" | "starter" | "pro" | "enterprise";
@@ -62,6 +68,47 @@ export interface ProfileRow {
   is_suspended: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface EmailLogRow {
+  id: string;
+  user_id: string | null;
+  email_type: string;
+  to_address: string;
+  subject: string;
+  status: DbEmailStatus;
+  provider_message_id: string | null;
+  error_message: string | null;
+  retry_count: number;
+  created_at: string;
+  sent_at: string | null;
+}
+
+export interface NotificationRow {
+  id: string;
+  user_id: string;
+  type: DbNotificationType;
+  title: string;
+  message: string;
+  data: Record<string, unknown>;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface EmailJobRow {
+  id: string;
+  email_type: string;
+  to_address: string;
+  subject: string;
+  html_body: string;
+  user_id: string | null;
+  retry_count: number;
+  max_retries: number;
+  status: DbEmailJobStatus;
+  scheduled_at: string;
+  processed_at: string | null;
+  error_message: string | null;
+  created_at: string;
 }
 
 export interface AdminLogRow {
@@ -287,6 +334,66 @@ export interface Database {
           ip_address?: string | null;
         };
         Update: Record<string, never>;
+        Relationships: [];
+      };
+      email_logs: {
+        Row: EmailLogRow & Record<string, unknown>;
+        Insert: {
+          email_type: string;
+          to_address: string;
+          subject: string;
+          user_id?: string | null;
+          status?: DbEmailStatus;
+          provider_message_id?: string | null;
+          error_message?: string | null;
+          retry_count?: number;
+          sent_at?: string | null;
+        };
+        Update: {
+          status?: DbEmailStatus;
+          provider_message_id?: string | null;
+          error_message?: string | null;
+          retry_count?: number;
+          sent_at?: string | null;
+        };
+        Relationships: [];
+      };
+      email_queue: {
+        Row: EmailJobRow & Record<string, unknown>;
+        Insert: {
+          email_type: string;
+          to_address: string;
+          subject: string;
+          html_body: string;
+          user_id?: string | null;
+          retry_count?: number;
+          max_retries?: number;
+          status?: DbEmailJobStatus;
+          scheduled_at?: string;
+          error_message?: string | null;
+        };
+        Update: {
+          status?: DbEmailJobStatus;
+          retry_count?: number;
+          processed_at?: string | null;
+          error_message?: string | null;
+          scheduled_at?: string;
+        };
+        Relationships: [];
+      };
+      notifications: {
+        Row: NotificationRow & Record<string, unknown>;
+        Insert: {
+          user_id: string;
+          type: DbNotificationType;
+          title: string;
+          message: string;
+          data?: Record<string, unknown>;
+          is_read?: boolean;
+        };
+        Update: {
+          is_read?: boolean;
+        };
         Relationships: [];
       };
     };

@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import {
-  Bell,
   Search,
   LogOut,
   User,
@@ -20,7 +19,6 @@ import {
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -32,23 +30,9 @@ import {
   DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 import { MobileNav } from "./mobile-nav";
+import { NotificationDropdown } from "@/components/notifications/notification-dropdown";
 import { logoutAction } from "@/actions/auth";
 import type { DbPlanType } from "@/types/database";
-
-/* ─── Notification type ──────────────────────────────────── */
-
-interface Notification {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ComponentType<{ className?: string }>;
-  time: string;
-  read: boolean;
-}
-
-const DEMO_NOTIFICATIONS: Notification[] = [];
-
-/* ─── Props ───────────────────────────────────────────────── */
 
 export interface DashboardHeaderProps {
   userName: string | null;
@@ -58,6 +42,7 @@ export interface DashboardHeaderProps {
   creditsBalance: number;
   creditsTotal: number;
   creditsPercentage: number;
+  unreadNotificationCount: number;
 }
 
 /* ─── Component ───────────────────────────────────────────── */
@@ -70,6 +55,7 @@ export function DashboardHeader({
   creditsBalance,
   creditsTotal,
   creditsPercentage,
+  unreadNotificationCount,
 }: DashboardHeaderProps) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
@@ -87,8 +73,6 @@ export function DashboardHeader({
   const initials = userName
     ? userName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : userEmail.slice(0, 2).toUpperCase();
-
-  const unreadCount = DEMO_NOTIFICATIONS.filter((n) => !n.read).length;
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center gap-3 border-b border-border/50 bg-background/95 backdrop-blur-sm px-4 md:px-6">
@@ -138,51 +122,7 @@ export function DashboardHeader({
         )}
 
         {/* Notifications */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-9 w-9 relative" aria-label="Notifications">
-              <Bell className="h-4 w-4" />
-              {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary" />
-              )}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
-            <DropdownMenuLabel className="flex items-center justify-between">
-              <span>Notifications</span>
-              {unreadCount > 0 && (
-                <Badge variant="secondary" className="text-xs h-5">
-                  {unreadCount} new
-                </Badge>
-              )}
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {DEMO_NOTIFICATIONS.length === 0 ? (
-              <div className="flex flex-col items-center py-8 px-4 text-center">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted mb-2">
-                  <Bell className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <p className="text-sm font-medium">All caught up</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  No new notifications right now
-                </p>
-              </div>
-            ) : (
-              DEMO_NOTIFICATIONS.map((n) => (
-                <DropdownMenuItem key={n.id} className="flex items-start gap-3 py-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 shrink-0">
-                    <n.icon className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium leading-snug">{n.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{n.description}</p>
-                    <p className="text-[11px] text-muted-foreground/70 mt-1">{n.time}</p>
-                  </div>
-                </DropdownMenuItem>
-              ))
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <NotificationDropdown initialUnreadCount={unreadNotificationCount} />
 
         {/* User menu */}
         <DropdownMenu>
