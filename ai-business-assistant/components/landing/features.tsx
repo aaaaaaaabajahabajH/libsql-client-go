@@ -1,4 +1,3 @@
-import Link from "next/link";
 import {
   FileText,
   Mail,
@@ -11,6 +10,8 @@ import {
   RefreshCw,
   ArrowRight,
 } from "lucide-react";
+import Link from "next/link";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -100,11 +101,11 @@ const benefits = [
 
 export function Features() {
   return (
-    <section id="features" className="py-20 sm:py-28">
+    <section className="py-20 sm:py-28" id="features">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section header */}
         <div className="text-center mb-16 space-y-4">
-          <Badge variant="secondary" className="text-xs font-semibold px-3 py-1">
+          <Badge className="text-xs font-semibold px-3 py-1" variant="secondary">
             6 AI Tools
           </Badge>
           <h2 className="text-3xl sm:text-5xl font-bold tracking-tight">
@@ -151,7 +152,7 @@ export function Features() {
                   </div>
                   <div className="flex items-center gap-2">
                     {tool.badge && (
-                      <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-semibold">
+                      <Badge className="text-[10px] h-5 px-1.5 font-semibold" variant="secondary">
                         {tool.badge}
                       </Badge>
                     )}
@@ -168,8 +169,8 @@ export function Features() {
                 </p>
 
                 <Link
-                  href="/register"
                   className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:gap-2.5 transition-all duration-200"
+                  href="/register"
                 >
                   Try for free
                   <ArrowRight className="h-3.5 w-3.5" />
@@ -194,7 +195,7 @@ export function Features() {
 
         {/* CTA */}
         <div className="mt-14 text-center">
-          <Button asChild size="lg" className="h-12 px-8 text-base shadow-glow">
+          <Button asChild className="h-12 px-8 text-base shadow-glow" size="lg">
             <Link href="/register">
               Start creating for free
               <ArrowRight className="h-4 w-4 ml-2" />

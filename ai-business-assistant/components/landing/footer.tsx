@@ -1,5 +1,6 @@
-import Link from "next/link";
 import { Bot, Twitter, Linkedin, Github, Mail } from "lucide-react";
+import Link from "next/link";
+
 import { Separator } from "@/components/ui/separator";
 import { APP_NAME } from "@/utils/constants";
 
@@ -51,7 +52,7 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-6 gap-10 mb-14">
           {/* Brand */}
           <div className="col-span-2 space-y-4">
-            <Link href="/" className="flex items-center gap-2.5">
+            <Link className="flex items-center gap-2.5" href="/">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shadow-glow-sm">
                 <Bot className="h-5 w-5 text-primary-foreground" />
               </div>
@@ -66,9 +67,9 @@ export function Footer() {
               {socialLinks.map((s) => (
                 <a
                   key={s.label}
-                  href={s.href}
                   aria-label={s.label}
                   className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  href={s.href}
                 >
                   <s.icon className="h-4 w-4" />
                 </a>
@@ -87,8 +88,8 @@ export function Footer() {
                   {links.map((link) => (
                     <li key={link.label}>
                       <Link
-                        href={link.href}
                         className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        href={link.href}
                       >
                         {link.label}
                       </Link>

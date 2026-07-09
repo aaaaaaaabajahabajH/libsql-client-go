@@ -11,6 +11,11 @@ const serverEnvSchema = z.object({
   EMAIL_FROM: z.string().email("EMAIL_FROM must be a valid email address").optional(),
   SENTRY_DSN: z.string().url().optional(),
   CRON_SECRET: z.string().optional(),
+  OPENAI_API_KEY: z.string().optional(),
+  STRIPE_STARTER_MONTHLY_PRICE_ID: z.string().optional(),
+  STRIPE_PRO_MONTHLY_PRICE_ID: z.string().optional(),
+  SENTRY_ORG: z.string().optional(),
+  SENTRY_PROJECT: z.string().optional(),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 });
 

@@ -1,121 +1,81 @@
 # Deployment Guide
 
-## Prerequisites
-
-- Node.js 20+
-- A Supabase project (free tier works for getting started)
-- A Stripe account (for billing)
-- A Resend account (for transactional emails)
-- Optional: Sentry project (for error monitoring)
+This guide covers deploying AI Business Assistant to Vercel (recommended), Docker / Google Cloud Run, and describes the required environment configuration.
 
 ---
 
-## 1. Environment Variables
-
-Copy `.env.example` to `.env.local` and fill in all required values.
+## Environment Variables Reference
 
 ### Required
 
 | Variable | Description |
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL (`https://<ref>.supabase.co`) |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon public key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server only, never expose) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key — server only, never exposed |
 | `STRIPE_SECRET_KEY` | Stripe secret key (`sk_live_...`) |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret (`whsec_...`) |
 | `RESEND_API_KEY` | Resend API key (`re_...`) |
+| `OPENAI_API_KEY` | OpenAI API key (`sk-...`) |
 
 ### Optional
 
 | Variable | Description | Default |
 |---|---|---|
-| `NEXT_PUBLIC_APP_URL` | Public URL of the deployment | `http://localhost:3000` |
+| `NEXT_PUBLIC_APP_URL` | Public deployment URL | `http://localhost:3000` |
 | `EMAIL_FROM` | Sender address for transactional emails | `noreply@yourdomain.com` |
 | `SENTRY_DSN` | Sentry DSN for error monitoring | — |
-| `CRON_SECRET` | Secret token to protect the email queue cron endpoint | — |
-| `NODE_ENV` | `production` or `development` | `development` |
+| `SENTRY_AUTH_TOKEN` | For source map upload during build | — |
+| `SENTRY_ORG` | Sentry organisation slug | — |
+| `SENTRY_PROJECT` | Sentry project slug | — |
+| `CRON_SECRET` | Protects `/api/email/process` | — |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Google Analytics 4 Measurement ID (`G-...`) | — |
+| `NEXT_PUBLIC_POSTHOG_KEY` | PostHog project API key (`phc_...`) | — |
+| `NEXT_PUBLIC_POSTHOG_HOST` | PostHog ingest host | `https://us.i.posthog.com` |
 
-### Stripe Price IDs (if using billing)
+### Stripe Price IDs
 
 | Variable | Description |
 |---|---|
-| `STRIPE_STARTER_MONTHLY_PRICE_ID` | Price ID for the Starter plan |
-| `STRIPE_PRO_MONTHLY_PRICE_ID` | Price ID for the Pro plan |
+| `STRIPE_STARTER_MONTHLY_PRICE_ID` | Monthly price ID for Starter plan |
+| `STRIPE_PRO_MONTHLY_PRICE_ID` | Monthly price ID for Pro plan |
 
 ---
 
-## 2. Supabase Setup
+## Deployment Option 1: Vercel (Recommended)
 
-### Run Migrations
+Vercel provides zero-config Next.js hosting with automatic SSL, global CDN, and preview deployments.
 
-Apply all migrations in order from `supabase/migrations/`:
+### Initial Setup
 
 ```bash
-# Using Supabase CLI
-supabase db push
-
-# Or manually via Supabase Dashboard > SQL Editor
+npm i -g vercel
+vercel login
+vercel link          # link local directory to a Vercel project
 ```
 
-Migrations:
-- `001_initial_schema.sql` — core tables (users, plans, credits, generations, documents)
-- `002_billing.sql` — billing tables (subscriptions, invoices)
-- `003_admin.sql` — admin support tables
-- `004_email_notifications.sql` — email_logs, email_queue, notifications
+### Set Environment Variables
 
-### Row Level Security
+```bash
+# Set each required variable
+vercel env add NEXT_PUBLIC_SUPABASE_URL production
+vercel env add SUPABASE_SERVICE_ROLE_KEY production
+# ...repeat for all required variables
+```
 
-All tables have RLS enabled. The migrations include the necessary policies. Verify in Supabase Dashboard > Authentication > Policies.
+Or set them in the Vercel Dashboard → Project → Settings → Environment Variables.
 
-### Auth Configuration
+### Deploy
 
-In Supabase Dashboard > Authentication > Settings:
-- Set **Site URL** to your production domain
-- Add your production domain to **Redirect URLs**
-- Enable **Email confirmations** if desired
-- Configure email templates (or rely on Resend via app-level sending)
+```bash
+vercel --prod
+```
 
----
+Subsequent deploys happen automatically when you push to `main` via the GitHub Actions workflow (see `.github/workflows/ci.yml`).
 
-## 3. Stripe Setup
+### Vercel Cron Job
 
-### Products and Prices
-
-Create products and prices in Stripe Dashboard:
-1. Create a **Starter** product with a monthly recurring price of $12
-2. Create a **Pro** product with a monthly recurring price of $25
-3. Copy the price IDs (`price_...`) into the environment variables above
-
-### Webhook
-
-1. In Stripe Dashboard > Developers > Webhooks, add a new endpoint:
-   - URL: `https://yourdomain.com/api/webhooks/stripe`
-   - Events to send:
-     - `checkout.session.completed`
-     - `customer.subscription.created`
-     - `customer.subscription.updated`
-     - `customer.subscription.deleted`
-     - `invoice.payment_succeeded`
-     - `invoice.payment_failed`
-2. Copy the signing secret (`whsec_...`) into `STRIPE_WEBHOOK_SECRET`
-
----
-
-## 4. Resend Setup
-
-1. Sign up at [resend.com](https://resend.com) and verify your sending domain
-2. Create an API key and set it as `RESEND_API_KEY`
-3. Update `EMAIL_FROM` to use your verified domain (e.g., `hello@yourdomain.com`)
-
----
-
-## 5. Email Queue Cron Job
-
-The email queue (`/api/email/process`) must be called periodically to process queued emails.
-
-### Vercel Cron (recommended on Vercel)
-
-Add to `vercel.json`:
+Add to `vercel.json` (create in project root):
 
 ```json
 {
@@ -128,78 +88,177 @@ Add to `vercel.json`:
 }
 ```
 
-The endpoint is protected by the `Authorization: Bearer <CRON_SECRET>` header. Vercel sets this automatically when using Vercel Cron.
-
-### Other Platforms
-
-Use any external cron service (e.g., cron-job.org, Railway cron, GitHub Actions) to POST to:
-
-```
-POST https://yourdomain.com/api/email/process
-Authorization: Bearer <CRON_SECRET>
-```
+Vercel Cron automatically adds the `Authorization` header using `CRON_SECRET`.
 
 ---
 
-## 6. Sentry Setup (optional but recommended)
+## Deployment Option 2: Docker / Google Cloud Run
 
-1. Create a project at [sentry.io](https://sentry.io)
-2. Copy the DSN and set it as `SENTRY_DSN`
-3. Set `SENTRY_ORG` and `SENTRY_PROJECT` if you want source map uploads
-
-Source maps are automatically uploaded during `next build` when Sentry environment variables are set.
-
----
-
-## 7. Deploy
-
-### Vercel (recommended)
+### Build the Docker Image
 
 ```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy
-vercel --prod
+docker build \
+  --build-arg NEXT_PUBLIC_APP_URL=https://app.yourdomain.com \
+  --build-arg NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co \
+  --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key \
+  --build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_... \
+  --build-arg NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX \
+  --build-arg NEXT_PUBLIC_POSTHOG_KEY=phc_... \
+  -t gcr.io/your-project/ai-business-assistant:latest \
+  .
 ```
 
-Set all environment variables in the Vercel dashboard under Project > Settings > Environment Variables.
+`NEXT_PUBLIC_*` variables are baked into the image at build time (they are embedded in the JS bundle). Runtime secrets (`SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, etc.) are **never** baked in — they are injected via environment at container start.
 
-### Other Platforms (Railway, Render, Fly.io)
+### Push to Google Container Registry
 
 ```bash
-npm run build
-npm start
+docker push gcr.io/your-project/ai-business-assistant:latest
 ```
 
-Ensure `NODE_ENV=production` is set and all required environment variables are available at runtime.
+### Deploy to Google Cloud Run
+
+```bash
+gcloud run deploy ai-business-assistant \
+  --image gcr.io/your-project/ai-business-assistant:latest \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --port 3000 \
+  --memory 512Mi \
+  --cpu 1 \
+  --min-instances 0 \
+  --max-instances 10 \
+  --set-secrets="SUPABASE_SERVICE_ROLE_KEY=supabase-service-role-key:latest,STRIPE_SECRET_KEY=stripe-secret-key:latest,STRIPE_WEBHOOK_SECRET=stripe-webhook-secret:latest,RESEND_API_KEY=resend-api-key:latest,OPENAI_API_KEY=openai-api-key:latest,CRON_SECRET=cron-secret:latest" \
+  --set-env-vars="NODE_ENV=production"
+```
+
+Store secrets in [Google Secret Manager](https://cloud.google.com/secret-manager) and reference them with `--set-secrets`.
+
+### Cloud Run Cron Job (Cloud Scheduler)
+
+```bash
+gcloud scheduler jobs create http email-queue-processor \
+  --schedule "* * * * *" \
+  --uri https://your-cloud-run-url/api/email/process \
+  --http-method POST \
+  --headers "Authorization=Bearer your-cron-secret" \
+  --oidc-service-account-email your-sa@project.iam.gserviceaccount.com
+```
+
+### Run with Docker Compose (local or self-hosted)
+
+```bash
+# Copy and fill in environment variables
+cp .env.example .env.local
+
+# Start the container
+docker-compose up -d
+
+# View logs
+docker-compose logs -f app
+```
 
 ---
 
-## 8. Post-Deployment Checklist
+## Supabase Setup
 
-- [ ] Visit `/api/health` — should return `{"status":"ok"}`
-- [ ] Test sign-up and email verification flow
-- [ ] Test Stripe checkout with a test card
-- [ ] Confirm Stripe webhook is receiving events (Stripe Dashboard > Webhooks > recent deliveries)
-- [ ] Send a test transactional email
-- [ ] Check Sentry dashboard for any startup errors
-- [ ] Review Supabase logs for any RLS policy violations
+### Apply Migrations
+
+```bash
+# Using Supabase CLI
+supabase link --project-ref your-project-ref
+supabase db push
+
+# Or manually via Supabase Dashboard → SQL Editor
+```
+
+Run in order:
+1. `supabase/migrations/001_initial_schema.sql`
+2. `supabase/migrations/002_billing.sql`
+3. `supabase/migrations/003_admin.sql`
+4. `supabase/migrations/004_email_notifications.sql`
+
+### Create the First Admin
+
+```sql
+UPDATE auth.users
+SET raw_app_meta_data = raw_app_meta_data || '{"role":"admin"}'
+WHERE email = 'admin@yourdomain.com';
+```
+
+### Auth Configuration
+
+Supabase Dashboard → Authentication → Settings:
+- **Site URL**: your production domain
+- **Redirect URLs**: include your production domain
+- **Email confirmations**: enable for production
 
 ---
 
-## 9. Running Tests
+## Stripe Setup
+
+1. Create products and prices in Stripe Dashboard (live mode)
+2. Copy price IDs to `STRIPE_STARTER_MONTHLY_PRICE_ID` and `STRIPE_PRO_MONTHLY_PRICE_ID`
+3. Create a webhook endpoint at `https://yourdomain.com/api/webhooks/stripe` with these events:
+   - `checkout.session.completed`
+   - `customer.subscription.created`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+   - `invoice.payment_succeeded`
+   - `invoice.payment_failed`
+4. Copy the signing secret to `STRIPE_WEBHOOK_SECRET`
+
+---
+
+## CI/CD (GitHub Actions)
+
+The workflow in `.github/workflows/ci.yml` runs automatically:
+
+| Trigger | Jobs that run |
+|---|---|
+| Pull request to `main` or `develop` | Lint → Type check → Unit tests |
+| Push to `main` | Above + Build + E2E tests + Vercel deploy + Docker image push |
+
+### Required GitHub Secrets
+
+Set in GitHub → Repository → Settings → Secrets and variables → Actions:
+
+| Secret | Description |
+|---|---|
+| `VERCEL_TOKEN` | From Vercel → Account → Tokens |
+| `NEXT_PUBLIC_SUPABASE_URL` | Used in E2E test job |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Used in E2E test job |
+| `NEXT_PUBLIC_APP_URL` | Used in Docker build |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Used in Docker build |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Used in Docker build |
+| `NEXT_PUBLIC_POSTHOG_KEY` | Used in Docker build |
+
+---
+
+## Health Check
+
+The health endpoint is always available at `/api/health`:
 
 ```bash
-# Unit tests
-npm test
-
-# Unit tests with coverage
-npm run test:coverage
-
-# E2E tests (requires running dev server)
-npm run test:e2e
-
-# E2E tests with UI
-npm run test:e2e:ui
+curl https://yourdomain.com/api/health
+# {"status":"ok","services":{"database":"ok","environment":"ok"},"version":"1.0.0"}
 ```
+
+Returns HTTP 503 with `{"status":"degraded"}` when a dependency is unavailable.
+
+Configure your uptime monitor to poll this endpoint every 1–5 minutes.
+
+---
+
+## Post-Deployment Checklist
+
+See [docs/launch-checklist.md](docs/launch-checklist.md) for the full launch checklist.
+
+Quick smoke test:
+- [ ] `GET /api/health` → 200
+- [ ] Landing page loads
+- [ ] Register an account → welcome email received
+- [ ] Upgrade to Starter via Stripe Checkout
+- [ ] Run an AI generation → credits deducted correctly
+- [ ] Cancel subscription via Customer Portal

@@ -65,16 +65,16 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+    <form noValidate className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
       <div className="space-y-2">
         <Label htmlFor="email">Email address</Label>
         <Input
-          id="email"
-          type="email"
-          placeholder="you@company.com"
-          autoComplete="email"
           aria-invalid={!!errors.email}
+          autoComplete="email"
           disabled={isSubmitting}
+          id="email"
+          placeholder="you@company.com"
+          type="email"
           {...register("email")}
         />
         {errors.email && (
@@ -84,7 +84,7 @@ export function ForgotPasswordForm() {
         )}
       </div>
 
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
+      <Button className="w-full" disabled={isSubmitting} type="submit">
         {isSubmitting ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

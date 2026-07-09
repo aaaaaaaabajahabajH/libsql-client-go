@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
+
+import { DashboardHeader } from "@/components/dashboard/header";
+import { Sidebar } from "@/components/dashboard/sidebar";
 import { createClient } from "@/lib/supabase/server";
 import { buildCreditsState } from "@/services/credits";
 import { getUnreadCount } from "@/services/notifications";
-import { DashboardHeader } from "@/components/dashboard/header";
-import { Sidebar } from "@/components/dashboard/sidebar";
 import type { DbPlanType, ProfileRow, CreditsRow } from "@/types/database";
 
 export default async function DashboardLayout({
@@ -54,22 +55,22 @@ export default async function DashboardLayout({
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar
-        plan={plan}
         creditsBalance={creditsState.balance}
-        creditsTotal={monthlyAllowance}
         creditsPercentage={creditsState.percentage}
+        creditsTotal={monthlyAllowance}
+        plan={plan}
       />
 
       <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
         <DashboardHeader
-          userName={profile?.full_name ?? null}
-          userEmail={user.email ?? ""}
           avatarUrl={profile?.avatar_url ?? null}
-          plan={plan}
           creditsBalance={creditsState.balance}
-          creditsTotal={monthlyAllowance}
           creditsPercentage={creditsState.percentage}
+          creditsTotal={monthlyAllowance}
+          plan={plan}
           unreadNotificationCount={unreadCount}
+          userEmail={user.email ?? ""}
+          userName={profile?.full_name ?? null}
         />
 
         <main className="flex-1 overflow-y-auto">

@@ -1,13 +1,14 @@
 "use client";
 
-import * as React from "react";
 import { Loader2, Mail, CreditCard, Sparkles, ShieldAlert } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { SettingsSection } from "@/components/settings/settings-section";
-import { SaveFeedback } from "@/components/settings/save-feedback";
+import * as React from "react";
+
 import { updateNotificationPrefsAction } from "@/actions/settings";
+import { SaveFeedback } from "@/components/settings/save-feedback";
+import { SettingsSection } from "@/components/settings/settings-section";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import type { UserPreferencesRow } from "@/types/database";
 
 interface NotificationsFormProps {
@@ -79,8 +80,8 @@ export function NotificationsForm({ preferences }: NotificationsFormProps) {
   return (
     <div className="space-y-10">
       <SettingsSection
-        title="Email Notifications"
         description="Choose which emails you want to receive. You will always receive transactional emails related to your account security."
+        title="Email Notifications"
       >
         <div className="space-y-0 divide-y divide-border">
           {NOTIFICATION_ITEMS.map((item) => {
@@ -95,15 +96,15 @@ export function NotificationsForm({ preferences }: NotificationsFormProps) {
                     <Icon className="h-4 w-4 text-muted-foreground" />
                   </div>
                   <div>
-                    <Label htmlFor={item.key} className="text-sm font-medium cursor-pointer">
+                    <Label className="text-sm font-medium cursor-pointer" htmlFor={item.key}>
                       {item.label}
                     </Label>
                     <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
                   </div>
                 </div>
                 <Switch
-                  id={item.key}
                   checked={values[item.key]}
+                  id={item.key}
                   onCheckedChange={() => toggle(item.key)}
                 />
               </div>
@@ -112,11 +113,11 @@ export function NotificationsForm({ preferences }: NotificationsFormProps) {
         </div>
 
         <div className="flex items-center gap-4 pt-2">
-          <Button onClick={handleSave} disabled={saving} size="sm">
+          <Button disabled={saving} size="sm" onClick={handleSave}>
             {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Save preferences
           </Button>
-          {status && <SaveFeedback success={status.success} message={status.message} />}
+          {status && <SaveFeedback message={status.message} success={status.success} />}
         </div>
       </SettingsSection>
     </div>

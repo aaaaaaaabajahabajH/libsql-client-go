@@ -32,48 +32,48 @@ export function BarChart({
   horizontal = false,
 }: BarChartProps) {
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer height="100%" width="100%">
       <RechartsBarChart
         data={data.map((d) => ({ name: d.label, value: d.value }))}
         layout={horizontal ? "vertical" : "horizontal"}
         margin={{ top: 4, right: 4, left: horizontal ? 80 : -20, bottom: 0 }}
       >
-        <CartesianGrid strokeDasharray="3 3" stroke="currentColor" strokeOpacity={0.08} />
+        <CartesianGrid stroke="currentColor" strokeDasharray="3 3" strokeOpacity={0.08} />
         {horizontal ? (
           <>
             <XAxis
-              type="number"
+              allowDecimals={false}
+              axisLine={false}
+              className="text-muted-foreground"
               tick={{ fontSize: 11 }}
               tickLine={false}
-              axisLine={false}
-              allowDecimals={false}
-              className="text-muted-foreground"
+              type="number"
             />
             <YAxis
-              type="category"
+              axisLine={false}
+              className="text-muted-foreground"
               dataKey="name"
               tick={{ fontSize: 11 }}
               tickLine={false}
-              axisLine={false}
-              className="text-muted-foreground"
+              type="category"
               width={76}
             />
           </>
         ) : (
           <>
             <XAxis
+              axisLine={false}
+              className="text-muted-foreground"
               dataKey="name"
               tick={{ fontSize: 11 }}
               tickLine={false}
-              axisLine={false}
-              className="text-muted-foreground"
             />
             <YAxis
+              allowDecimals={false}
+              axisLine={false}
+              className="text-muted-foreground"
               tick={{ fontSize: 11 }}
               tickLine={false}
-              axisLine={false}
-              allowDecimals={false}
-              className="text-muted-foreground"
             />
           </>
         )}
@@ -87,7 +87,7 @@ export function BarChart({
           }}
           formatter={(v) => [`${valuePrefix}${Number(v ?? 0).toLocaleString()}${valueSuffix}`, "Value"]}
         />
-        <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={48}>
+        <Bar dataKey="value" maxBarSize={48} radius={[4, 4, 0, 0]}>
           {data.map((_, i) => (
             <Cell
               key={i}

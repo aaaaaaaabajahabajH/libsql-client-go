@@ -1,7 +1,8 @@
 "use client";
 
-import * as React from "react";
 import { Loader2 } from "lucide-react";
+import * as React from "react";
+
 import {
   AlertDialog,
   AlertDialogContent,
@@ -53,15 +54,15 @@ export function SaveDialog({ open, onOpenChange, defaultTitle, onSave }: SaveDia
         </AlertDialogHeader>
 
         <div className="py-2">
-          <Label htmlFor="doc-title" className="text-sm font-medium mb-1.5 block">
+          <Label className="text-sm font-medium mb-1.5 block" htmlFor="doc-title">
             Document Title
           </Label>
           <Input
             id="doc-title"
+            maxLength={300}
+            placeholder="Enter document title..."
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Enter document title..."
-            maxLength={300}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !saving) {
                 e.preventDefault();
@@ -73,7 +74,7 @@ export function SaveDialog({ open, onOpenChange, defaultTitle, onSave }: SaveDia
 
         <AlertDialogFooter>
           <AlertDialogCancel disabled={saving}>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleSave} disabled={saving || !title.trim()}>
+          <AlertDialogAction disabled={saving || !title.trim()} onClick={handleSave}>
             {saving ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

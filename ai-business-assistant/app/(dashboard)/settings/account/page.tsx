@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
+
 import { createClient } from "@/lib/supabase/server";
 import { getOrCreatePreferences } from "@/services/preferences";
 import type { ProfileRow } from "@/types/database";
+
 import { AccountForm } from "./account-form";
 
 export const metadata = { title: "Account Settings" };
@@ -18,9 +20,9 @@ export default async function AccountSettingsPage() {
 
   return (
     <AccountForm
-      userEmail={profile?.email ?? user.email ?? ""}
-      currentTheme={preferences.theme}
       currentLanguage={preferences.app_language}
+      currentTheme={preferences.theme}
+      userEmail={profile?.email ?? user.email ?? ""}
     />
   );
 }

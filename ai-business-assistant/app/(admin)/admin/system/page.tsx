@@ -9,10 +9,11 @@ import {
   AlertTriangle,
   XCircle,
 } from "lucide-react";
+
 import { PageHeader } from "@/components/admin/page-header";
+import { cn } from "@/lib/utils";
 import { getSystemStatus, getStorageUsage } from "@/services/admin/system";
 import type { ServiceStatus } from "@/services/admin/system";
-import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Admin — System" };
 export const dynamic = "force-dynamic";
@@ -89,7 +90,7 @@ export default async function SystemPage() {
 
   return (
     <>
-      <PageHeader title="System Monitoring" description="Live status of all integrated services" />
+      <PageHeader description="Live status of all integrated services" title="System Monitoring" />
 
       <div className={cn(
         "rounded-xl border p-4 mb-6 flex items-center gap-3",
@@ -119,41 +120,41 @@ export default async function SystemPage() {
         <p className="text-xs text-muted-foreground mb-4">Real-time connectivity checks</p>
 
         <ServiceRow
+          detail="Supabase PostgreSQL"
           icon={Database}
           label="Database"
-          detail="Supabase PostgreSQL"
-          status={status.database}
           latencyMs={status.dbLatencyMs}
+          status={status.database}
         />
         <ServiceRow
+          detail="Payment processing"
           icon={CreditCard}
           label="Stripe"
-          detail="Payment processing"
-          status={status.stripe}
           latencyMs={status.stripeLatencyMs}
+          status={status.stripe}
         />
         <ServiceRow
+          detail="Supabase Storage"
           icon={HardDrive}
           label="Storage"
-          detail="Supabase Storage"
           status={status.storage}
         />
         <ServiceRow
+          detail="Email delivery service"
           icon={Mail}
           label="Email"
-          detail="Email delivery service"
           status={status.email}
         />
         <ServiceRow
+          detail="OpenAI / Anthropic / Google"
           icon={Sparkles}
           label="AI Providers"
-          detail="OpenAI / Anthropic / Google"
           status="operational"
         />
         <ServiceRow
+          detail="Next.js Edge Runtime"
           icon={Wifi}
           label="API"
-          detail="Next.js Edge Runtime"
           status="operational"
         />
       </div>

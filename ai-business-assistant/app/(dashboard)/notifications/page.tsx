@@ -1,8 +1,10 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { NotificationsView } from "./notifications-view";
-import { listNotifications, getUnreadCount } from "@/services/notifications";
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+
+import { createClient } from "@/lib/supabase/server";
+import { listNotifications, getUnreadCount } from "@/services/notifications";
+
+import { NotificationsView } from "./notifications-view";
 
 export const metadata: Metadata = {
   title: "Notifications",

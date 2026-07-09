@@ -1,9 +1,10 @@
-import Link from "next/link";
 import { BookMarked, Star, ArrowRight, FileText, Mail, Share2, Receipt, PenTool, Globe } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+
+import { EmptyState } from "@/components/common/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/common/empty-state";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DbToolType } from "@/types/database";
 
 const toolIconMap: Record<DbToolType, React.ComponentType<{ className?: string }>> = {
@@ -55,7 +56,7 @@ export function SavedDocumentsPreview({ documents }: SavedDocumentsPreviewProps)
             Saved Documents
           </CardTitle>
           {documents.length > 0 && (
-            <Button asChild variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground">
+            <Button asChild className="h-7 text-xs text-muted-foreground" size="sm" variant="ghost">
               <Link href="/dashboard/saved">
                 View all
                 <ArrowRight className="h-3 w-3 ml-1" />
@@ -68,11 +69,11 @@ export function SavedDocumentsPreview({ documents }: SavedDocumentsPreviewProps)
       <CardContent>
         {documents.length === 0 ? (
           <EmptyState
-            icon={BookMarked}
-            title="No saved documents"
-            description="Save outputs from AI tools to access them here anytime."
-            size="sm"
             action={{ label: "Explore Tools", href: "/dashboard/tools" }}
+            description="Save outputs from AI tools to access them here anytime."
+            icon={BookMarked}
+            size="sm"
+            title="No saved documents"
           />
         ) : (
           <div className="space-y-2">
@@ -82,8 +83,8 @@ export function SavedDocumentsPreview({ documents }: SavedDocumentsPreviewProps)
               return (
                 <Link
                   key={doc.id}
-                  href={`/dashboard/saved/${doc.id}`}
                   className="flex items-center gap-3 rounded-lg p-2 -mx-2 hover:bg-muted/50 transition-colors group"
+                  href={`/dashboard/saved/${doc.id}`}
                 >
                   <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${colorClass}`}>
                     <Icon className="h-3.5 w-3.5" />
@@ -98,7 +99,7 @@ export function SavedDocumentsPreview({ documents }: SavedDocumentsPreviewProps)
                     {doc.isFavorite && (
                       <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
                     )}
-                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
+                    <Badge className="text-[10px] h-4 px-1.5" variant="secondary">
                       {toolLabelMap[doc.tool]}
                     </Badge>
                   </div>

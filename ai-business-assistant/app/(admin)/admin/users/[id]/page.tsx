@@ -1,12 +1,15 @@
-import { notFound } from "next/navigation";
-import Link from "next/link";
 import { ArrowLeft, Mail, Calendar, MapPin, Building, Globe, Zap } from "lucide-react";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+
+import { StatusBadge } from "@/components/admin/status-badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/admin/status-badge";
-import { UserActions } from "./user-actions";
 import { getAdminUserDetail, getUserActivityHistory } from "@/services/admin/users";
+
+import { UserActions } from "./user-actions";
+
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +53,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
   return (
     <>
       <div className="mb-6">
-        <Button asChild variant="ghost" size="sm" className="mb-4 -ml-2">
+        <Button asChild className="mb-4 -ml-2" size="sm" variant="ghost">
           <Link href="/admin/users">
             <ArrowLeft className="h-4 w-4 mr-1.5" />
             Back to users
@@ -66,8 +69,8 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl font-bold">{user.full_name ?? "No name"}</h1>
               <StatusBadge status={user.is_suspended ? "suspended" : "active"} />
-              <Badge variant="outline" className="capitalize">{user.plan}</Badge>
-              <Badge variant="secondary" className="capitalize text-[11px]">{user.role}</Badge>
+              <Badge className="capitalize" variant="outline">{user.plan}</Badge>
+              <Badge className="capitalize text-[11px]" variant="secondary">{user.role}</Badge>
             </div>
             <p className="text-muted-foreground mt-0.5">{user.email}</p>
           </div>
@@ -121,7 +124,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Plan</span>
-                  <Badge variant="outline" className="capitalize text-[11px]">{user.subscription.plan}</Badge>
+                  <Badge className="capitalize text-[11px]" variant="outline">{user.subscription.plan}</Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Status</span>
@@ -147,11 +150,11 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
           <div className="rounded-xl border border-border bg-card p-4">
             <p className="text-sm font-semibold mb-4">Admin Actions</p>
             <UserActions
-              userId={user.id}
-              isSuspended={user.is_suspended}
-              currentPlan={user.plan}
-              currentBalance={user.credits?.balance ?? 0}
               currentAllowance={user.credits?.monthly_allowance ?? 20}
+              currentBalance={user.credits?.balance ?? 0}
+              currentPlan={user.plan}
+              isSuspended={user.is_suspended}
+              userId={user.id}
             />
           </div>
 

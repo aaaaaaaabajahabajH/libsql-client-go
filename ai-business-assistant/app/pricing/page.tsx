@@ -1,10 +1,11 @@
 "use client";
 
-import * as React from "react";
-import Link from "next/link";
 import { Shield, Zap, RefreshCw, Headphones, ArrowRight } from "lucide-react";
-import { LandingNavbar } from "@/components/landing/navbar";
+import Link from "next/link";
+import * as React from "react";
+
 import { Footer } from "@/components/landing/footer";
+import { LandingNavbar } from "@/components/landing/navbar";
 import {
   BillingToggle,
   PlanCard,
@@ -12,8 +13,8 @@ import {
   PricingFaq,
   UpgradeDialog,
 } from "@/components/pricing";
-import { PLAN_CONFIGS } from "@/utils/constants";
 import type { DbPlanType } from "@/types/database";
+import { PLAN_CONFIGS } from "@/utils/constants";
 
 const guarantees = [
   { icon: Shield, label: "7-day money-back guarantee" },
@@ -66,9 +67,9 @@ export default function PricingPage() {
             {PLAN_CONFIGS.map((plan) => (
               <PlanCard
                 key={plan.id}
-                plan={plan}
                 isAnnual={isAnnual}
                 isAuthenticated={false}
+                plan={plan}
                 onUpgrade={handleUpgrade}
               />
             ))}
@@ -107,8 +108,8 @@ export default function PricingPage() {
               management. Built for agencies and large businesses.
             </p>
             <Link
-              href="mailto:sales@aibusiness.ai"
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary underline-offset-4 hover:underline"
+              href="mailto:sales@aibusiness.ai"
             >
               Contact Sales
               <ArrowRight className="h-4 w-4" />
@@ -125,12 +126,12 @@ export default function PricingPage() {
       <Footer />
 
       <UpgradeDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        targetPlan={targetPlan}
         currentPlan="free"
         isAnnual={isAnnual}
+        open={dialogOpen}
+        targetPlan={targetPlan}
         onConfirm={handleConfirmUpgrade}
+        onOpenChange={setDialogOpen}
       />
     </>
   );

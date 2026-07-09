@@ -11,14 +11,14 @@ export {
 } from "./prompts";
 export type { BuiltPrompt } from "./prompts";
 
-import type { BuiltPrompt } from "./prompts";
 import type { DbToolType } from "@/types/database";
 
-import { buildSocialMediaPrompt } from "./prompts/social-media";
-import { buildProductDescriptionPrompt } from "./prompts/product-description";
+import type { BuiltPrompt } from "./prompts";
 import { buildBlogWriterPrompt } from "./prompts/blog-writer";
 import { buildEmailWriterPrompt } from "./prompts/email-writer";
 import { buildInvoiceGeneratorPrompt } from "./prompts/invoice-generator";
+import { buildProductDescriptionPrompt } from "./prompts/product-description";
+import { buildSocialMediaPrompt } from "./prompts/social-media";
 import { buildTranslatorPrompt } from "./prompts/translator";
 
 export function buildPrompt(

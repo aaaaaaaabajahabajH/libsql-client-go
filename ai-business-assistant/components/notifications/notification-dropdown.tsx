@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import Link from "next/link";
 import { Bell, CheckCheck, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { useState, useCallback } from "react";
+
+import { fetchNotificationsAction, markAllNotificationsReadAction } from "@/actions/notifications";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,9 +14,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { NotificationItem } from "./notification-item";
-import { fetchNotificationsAction, markAllNotificationsReadAction } from "@/actions/notifications";
 import type { NotificationRow } from "@/types/database";
+
+import { NotificationItem } from "./notification-item";
 
 interface NotificationDropdownProps {
   initialUnreadCount: number;
@@ -65,7 +67,7 @@ export function NotificationDropdown({ initialUnreadCount }: NotificationDropdow
   return (
     <DropdownMenu open={open} onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-9 w-9 relative" aria-label="Notifications">
+        <Button aria-label="Notifications" className="h-9 w-9 relative" size="icon" variant="ghost">
           <Bell className="h-4 w-4" />
           {unreadCount > 0 && (
             <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-white">
@@ -80,18 +82,18 @@ export function NotificationDropdown({ initialUnreadCount }: NotificationDropdow
           <div className="flex items-center gap-2">
             <span className="font-semibold">Notifications</span>
             {unreadCount > 0 && (
-              <Badge variant="secondary" className="h-5 text-xs px-1.5">
+              <Badge className="h-5 text-xs px-1.5" variant="secondary">
                 {unreadCount} new
               </Badge>
             )}
           </div>
           {unreadCount > 0 && (
             <Button
-              variant="ghost"
-              size="sm"
               className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-              onClick={handleMarkAllRead}
               disabled={markingAll}
+              size="sm"
+              variant="ghost"
+              onClick={handleMarkAllRead}
             >
               {markingAll ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCheck className="h-3.5 w-3.5" />}
               <span className="ml-1">Mark all read</span>
@@ -119,9 +121,9 @@ export function NotificationDropdown({ initialUnreadCount }: NotificationDropdow
               {notifications.map((n) => (
                 <NotificationItem
                   key={n.id}
+                  compact
                   notification={n}
                   onDelete={handleDelete}
-                  compact
                 />
               ))}
             </div>
@@ -133,8 +135,8 @@ export function NotificationDropdown({ initialUnreadCount }: NotificationDropdow
             <DropdownMenuSeparator className="my-0" />
             <div className="px-4 py-2">
               <Link
-                href="/notifications"
                 className="text-xs text-primary hover:underline font-medium"
+                href="/notifications"
                 onClick={() => setOpen(false)}
               >
                 View all notifications →

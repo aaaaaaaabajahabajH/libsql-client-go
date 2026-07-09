@@ -1,10 +1,8 @@
-import { Suspense } from "react";
+import { BarChart3, FileText, Zap, Clock } from "lucide-react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { BarChart3, FileText, Zap, Clock } from "lucide-react";
+import { Suspense } from "react";
 
-import { createClient } from "@/lib/supabase/server";
-import { buildCreditsState } from "@/services/credits";
 import {
   WelcomeCard,
   StatsCard,
@@ -22,6 +20,8 @@ import {
 } from "@/components/dashboard";
 import type { ActivityItem } from "@/components/dashboard/recent-activity";
 import type { SavedDocumentPreview } from "@/components/dashboard/saved-documents-preview";
+import { createClient } from "@/lib/supabase/server";
+import { buildCreditsState } from "@/services/credits";
 import type {
   DbPlanType,
   DbToolType,
@@ -165,9 +165,9 @@ export default async function DashboardPage() {
     <div className="p-4 sm:p-6 space-y-6 animate-fade-in max-w-screen-2xl mx-auto">
       <Suspense fallback={<WelcomeCardSkeleton />}>
         <WelcomeCard
-          userName={data.userName}
-          totalGenerations={data.activities.length}
           creditsBalance={data.creditsState.balance}
+          totalGenerations={data.activities.length}
+          userName={data.userName}
         />
       </Suspense>
 
@@ -192,11 +192,11 @@ export default async function DashboardPage() {
           <Suspense fallback={<CreditsCardSkeleton />}>
             <CreditsCard
               balance={data.creditsState.balance}
-              totalUsed={data.creditsState.totalUsed}
               monthlyAllowance={data.monthlyAllowance}
               percentage={data.creditsState.percentage}
-              resetAt={data.creditsState.resetAt}
               plan={data.plan}
+              resetAt={data.creditsState.resetAt}
+              totalUsed={data.creditsState.totalUsed}
             />
           </Suspense>
 

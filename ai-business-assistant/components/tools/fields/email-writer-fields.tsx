@@ -2,8 +2,9 @@
 
 import { Controller } from "react-hook-form";
 import type { UseFormReturn } from "react-hook-form";
+
+import type { EmailWriterFormValues } from "@/actions/tools";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -11,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { EmailWriterFormValues } from "@/actions/tools";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Props {
   form: UseFormReturn<EmailWriterFormValues>;
@@ -52,8 +53,8 @@ export function EmailWriterFields({ form }: Props) {
         <Label htmlFor="ew-recipient">About the Recipient</Label>
         <Textarea
           id="ew-recipient"
-          rows={3}
           placeholder="Who is the recipient? What do they do, what problem do you solve for them, or what's the context?"
+          rows={3}
           {...register("recipientContext")}
         />
         {errors.recipientContext && (
@@ -65,8 +66,8 @@ export function EmailWriterFields({ form }: Props) {
         <Label htmlFor="ew-sender">About You / Your Company</Label>
         <Textarea
           id="ew-sender"
-          rows={2}
           placeholder="Who are you? What does your company do or offer?"
+          rows={2}
           {...register("senderContext")}
         />
         {errors.senderContext && (
@@ -98,8 +99,8 @@ export function EmailWriterFields({ form }: Props) {
 
       <label className="flex items-center gap-2 cursor-pointer">
         <input
-          type="checkbox"
           className="h-4 w-4 rounded border-border accent-primary"
+          type="checkbox"
           {...register("includeSubjectLine")}
         />
         <span className="text-sm">Include subject line</span>

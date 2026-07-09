@@ -1,17 +1,18 @@
 "use client";
 
-import * as React from "react";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Share2, Loader2, Zap } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { CreditDisplay, ToolOutput, SocialMediaFields } from "@/components/tools";
-import { useToolGeneration } from "@/hooks/use-tool-generation";
+import * as React from "react";
+import { useForm } from "react-hook-form";
+
 import {
   SocialMediaSchema,
   type SocialMediaFormValues,
 } from "@/actions/tools";
+import { CreditDisplay, ToolOutput, SocialMediaFields } from "@/components/tools";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { useToolGeneration } from "@/hooks/use-tool-generation";
 import { TOOL_CREDIT_COSTS } from "@/utils/constants";
 
 const CREDIT_COST = TOOL_CREDIT_COSTS["social-media"];
@@ -67,17 +68,17 @@ export default function SocialMediaPage() {
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
               Input
             </h2>
-            <CreditDisplay cost={CREDIT_COST} balance={50} />
+            <CreditDisplay balance={50} cost={CREDIT_COST} />
           </div>
 
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+          <form className="space-y-5" onSubmit={form.handleSubmit(onSubmit)}>
             <SocialMediaFields form={form} />
 
             <div className="flex gap-2 pt-1">
               <Button
-                type="submit"
-                disabled={isGenerating}
                 className="flex-1 font-semibold shadow-glow-sm"
+                disabled={isGenerating}
+                type="submit"
               >
                 {isGenerating ? (
                   <>
@@ -106,13 +107,13 @@ export default function SocialMediaPage() {
             Output
           </h2>
           <ToolOutput
-            status={status}
-            output={output}
-            error={error}
-            tool="social-media"
-            defaultTitle={`Social media post — ${form.watch("platform") ?? "linkedin"}`}
-            onRegenerate={form.handleSubmit(onSubmit)}
             className="flex-1"
+            defaultTitle={`Social media post — ${form.watch("platform") ?? "linkedin"}`}
+            error={error}
+            output={output}
+            status={status}
+            tool="social-media"
+            onRegenerate={form.handleSubmit(onSubmit)}
           />
         </Card>
       </div>

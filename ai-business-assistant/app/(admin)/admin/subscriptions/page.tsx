@@ -1,11 +1,12 @@
-import Link from "next/link";
 import { CreditCard, AlertTriangle, XCircle, Clock } from "lucide-react";
+import Link from "next/link";
+
+import { PageHeader } from "@/components/admin/page-header";
+import { StatCard } from "@/components/admin/stat-card";
+import { StatusBadge } from "@/components/admin/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { StatCard } from "@/components/admin/stat-card";
-import { StatusBadge } from "@/components/admin/status-badge";
-import { PageHeader } from "@/components/admin/page-header";
 import {
   getSubscriptionStats,
   listSubscriptions,
@@ -52,7 +53,7 @@ export default async function SubscriptionsPage() {
                 <p className="text-xs text-muted-foreground">{sub.user_email}</p>
               </td>
               <td className="px-4 py-3 hidden md:table-cell">
-                <Badge variant="outline" className="capitalize text-[11px]">{sub.plan}</Badge>
+                <Badge className="capitalize text-[11px]" variant="outline">{sub.plan}</Badge>
               </td>
               <td className="px-4 py-3">
                 <StatusBadge status={sub.status} />
@@ -63,7 +64,7 @@ export default async function SubscriptionsPage() {
                   : "—"}
               </td>
               <td className="px-4 py-3 text-right">
-                <Button asChild variant="ghost" size="sm">
+                <Button asChild size="sm" variant="ghost">
                   <Link href={`/admin/users/${sub.user_id}`}>View user</Link>
                 </Button>
               </td>
@@ -76,13 +77,13 @@ export default async function SubscriptionsPage() {
 
   return (
     <>
-      <PageHeader title="Subscriptions" description="Manage all subscription statuses" />
+      <PageHeader description="Manage all subscription statuses" title="Subscriptions" />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Active" value={stats.active.toLocaleString()} icon={CreditCard} variant="success" />
-        <StatCard label="Past Due" value={stats.pastDue.toLocaleString()} icon={AlertTriangle} variant={stats.pastDue > 0 ? "warning" : "default"} />
-        <StatCard label="Canceled" value={stats.canceled.toLocaleString()} icon={XCircle} />
-        <StatCard label="Expiring (7d)" value={expiringSubs.length.toLocaleString()} icon={Clock} variant={expiringSubs.length > 0 ? "warning" : "default"} />
+        <StatCard icon={CreditCard} label="Active" value={stats.active.toLocaleString()} variant="success" />
+        <StatCard icon={AlertTriangle} label="Past Due" value={stats.pastDue.toLocaleString()} variant={stats.pastDue > 0 ? "warning" : "default"} />
+        <StatCard icon={XCircle} label="Canceled" value={stats.canceled.toLocaleString()} />
+        <StatCard icon={Clock} label="Expiring (7d)" value={expiringSubs.length.toLocaleString()} variant={expiringSubs.length > 0 ? "warning" : "default"} />
       </div>
 
       {expiringSubs.length > 0 && (
@@ -118,13 +119,13 @@ export default async function SubscriptionsPage() {
         </TabsList>
 
         <div className="rounded-xl border border-border overflow-hidden">
-          <TabsContent value="active" className="m-0">
+          <TabsContent className="m-0" value="active">
             <SubTable subs={activeSubs} />
           </TabsContent>
-          <TabsContent value="past_due" className="m-0">
+          <TabsContent className="m-0" value="past_due">
             <SubTable subs={pastDueSubs} />
           </TabsContent>
-          <TabsContent value="canceled" className="m-0">
+          <TabsContent className="m-0" value="canceled">
             <SubTable subs={canceledSubs} />
           </TabsContent>
         </div>

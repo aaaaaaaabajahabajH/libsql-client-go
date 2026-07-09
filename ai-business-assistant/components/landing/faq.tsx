@@ -1,7 +1,8 @@
 "use client";
 
-import * as React from "react";
 import { ChevronDown } from "lucide-react";
+import * as React from "react";
+
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -59,19 +60,19 @@ function FAQItem({ question, answer, isOpen, onToggle }: FAQItemProps) {
   return (
     <div className="border-b border-border/50 last:border-0">
       <button
-        onClick={onToggle}
-        className="flex w-full items-center justify-between py-5 text-left gap-4 group"
         aria-expanded={isOpen}
+        className="flex w-full items-center justify-between py-5 text-left gap-4 group"
+        onClick={onToggle}
       >
         <span className="text-sm sm:text-base font-semibold group-hover:text-primary transition-colors">
           {question}
         </span>
         <ChevronDown
+          aria-hidden="true"
           className={cn(
             "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-300",
             isOpen && "rotate-180 text-primary",
           )}
-          aria-hidden="true"
         />
       </button>
 
@@ -97,7 +98,7 @@ export function FAQ() {
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-14 space-y-4">
-          <Badge variant="secondary" className="text-xs font-semibold px-3 py-1">
+          <Badge className="text-xs font-semibold px-3 py-1" variant="secondary">
             FAQ
           </Badge>
           <h2 className="text-3xl sm:text-5xl font-bold tracking-tight">
@@ -116,9 +117,9 @@ export function FAQ() {
           {faqs.map((faq, i) => (
             <FAQItem
               key={i}
-              question={faq.q}
               answer={faq.a}
               isOpen={openIndex === i}
+              question={faq.q}
               onToggle={() => toggle(i)}
             />
           ))}
@@ -128,8 +129,8 @@ export function FAQ() {
         <p className="text-center text-sm text-muted-foreground mt-8">
           Still have questions?{" "}
           <a
-            href="mailto:support@aibusiness.ai"
             className="font-medium text-primary hover:underline"
+            href="mailto:support@aibusiness.ai"
           >
             Contact our support team
           </a>

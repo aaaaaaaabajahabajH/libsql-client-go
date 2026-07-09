@@ -1,8 +1,9 @@
-import Link from "next/link";
 import { Zap, RefreshCw, TrendingUp } from "lucide-react";
+import Link from "next/link";
+
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { DbPlanType } from "@/types/database";
 
@@ -66,12 +67,12 @@ export function CreditsCard({
         {/* Progress */}
         <div className="space-y-1.5">
           <Progress
-            value={percentage}
             className={cn(
               "h-2",
               isCritical && "[&>div]:bg-destructive",
               isLow && !isCritical && "[&>div]:bg-warning",
             )}
+            value={percentage}
           />
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>{percentage}% used</span>
@@ -87,7 +88,7 @@ export function CreditsCard({
 
         {/* Upgrade CTA when running low */}
         {isLow && (plan === "free" || plan === "starter") && (
-          <Button asChild size="sm" className="w-full h-8 text-xs" variant={isCritical ? "default" : "outline"}>
+          <Button asChild className="w-full h-8 text-xs" size="sm" variant={isCritical ? "default" : "outline"}>
             <Link href="/pricing">
               <TrendingUp className="h-3.5 w-3.5 mr-1.5" />
               {isCritical ? "Upgrade Now" : "Get More Credits"}

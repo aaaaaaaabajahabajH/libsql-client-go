@@ -65,7 +65,7 @@ export function RegisterForm() {
             account and start using AI Business Assistant.
           </p>
         </div>
-        <Button variant="outline" asChild>
+        <Button asChild variant="outline">
           <Link href="/login">Back to sign in</Link>
         </Button>
       </div>
@@ -73,15 +73,15 @@ export function RegisterForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+    <form noValidate className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
       <div className="space-y-2">
         <Label htmlFor="fullName">Full name</Label>
         <Input
+          aria-invalid={!!errors.fullName}
+          autoComplete="name"
+          disabled={isSubmitting}
           id="fullName"
           placeholder="Jane Smith"
-          autoComplete="name"
-          aria-invalid={!!errors.fullName}
-          disabled={isSubmitting}
           {...register("fullName")}
         />
         {errors.fullName && (
@@ -94,12 +94,12 @@ export function RegisterForm() {
       <div className="space-y-2">
         <Label htmlFor="reg-email">Email address</Label>
         <Input
-          id="reg-email"
-          type="email"
-          placeholder="you@company.com"
-          autoComplete="email"
           aria-invalid={!!errors.email}
+          autoComplete="email"
           disabled={isSubmitting}
+          id="reg-email"
+          placeholder="you@company.com"
+          type="email"
           {...register("email")}
         />
         {errors.email && (
@@ -112,11 +112,11 @@ export function RegisterForm() {
       <div className="space-y-2">
         <Label htmlFor="reg-password">Password</Label>
         <PasswordInput
+          aria-invalid={!!errors.password}
+          autoComplete="new-password"
+          disabled={isSubmitting}
           id="reg-password"
           placeholder="Create a strong password"
-          autoComplete="new-password"
-          aria-invalid={!!errors.password}
-          disabled={isSubmitting}
           {...register("password")}
         />
         <PasswordStrength password={password} />
@@ -130,11 +130,11 @@ export function RegisterForm() {
       <div className="space-y-2">
         <Label htmlFor="confirmPassword">Confirm password</Label>
         <PasswordInput
+          aria-invalid={!!errors.confirmPassword}
+          autoComplete="new-password"
+          disabled={isSubmitting}
           id="confirmPassword"
           placeholder="••••••••"
-          autoComplete="new-password"
-          aria-invalid={!!errors.confirmPassword}
-          disabled={isSubmitting}
           {...register("confirmPassword")}
         />
         {errors.confirmPassword && (
@@ -147,29 +147,29 @@ export function RegisterForm() {
       <div className="space-y-2">
         <div className="flex items-start gap-2.5">
           <input
-            type="checkbox"
-            id="acceptTerms"
-            className="mt-0.5 h-4 w-4 cursor-pointer rounded border-input accent-primary disabled:cursor-not-allowed"
             aria-invalid={!!errors.acceptTerms}
+            className="mt-0.5 h-4 w-4 cursor-pointer rounded border-input accent-primary disabled:cursor-not-allowed"
             disabled={isSubmitting}
+            id="acceptTerms"
+            type="checkbox"
             {...register("acceptTerms")}
           />
           <Label
-            htmlFor="acceptTerms"
             className="cursor-pointer text-sm font-normal leading-snug"
+            htmlFor="acceptTerms"
           >
             I agree to the{" "}
             <Link
-              href="/terms"
               className="text-primary hover:underline"
+              href="/terms"
               target="_blank"
             >
               Terms of Service
             </Link>{" "}
             and{" "}
             <Link
-              href="/privacy"
               className="text-primary hover:underline"
+              href="/privacy"
               target="_blank"
             >
               Privacy Policy
@@ -183,7 +183,7 @@ export function RegisterForm() {
         )}
       </div>
 
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
+      <Button className="w-full" disabled={isSubmitting} type="submit">
         {isSubmitting ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

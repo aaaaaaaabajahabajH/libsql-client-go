@@ -1,4 +1,5 @@
 import { Check, X } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 
 type CellValue = boolean | string;
@@ -75,7 +76,7 @@ export function ComparisonTable() {
               </td>
               <td className="py-3.5 px-6 text-center bg-primary/5 border-x border-primary/20">
                 <div className="flex justify-center">
-                  <Cell value={row.starter} highlighted />
+                  <Cell highlighted value={row.starter} />
                 </div>
               </td>
               <td className="py-3.5 px-6 text-center">

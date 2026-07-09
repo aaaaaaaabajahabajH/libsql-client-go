@@ -1,10 +1,10 @@
 "use client";
 
-import * as React from "react";
-import { useRouter } from "next/navigation";
 import { Trash2, Download, Loader2, AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useRouter } from "next/navigation";
+import * as React from "react";
+
+import { deleteAccount, exportUserData } from "@/actions/settings";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +16,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { deleteAccount, exportUserData } from "@/actions/settings";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface DangerZoneProps {
   userEmail: string;
@@ -77,11 +78,11 @@ export function DangerZone({ userEmail }: DangerZoneProps) {
           {exportError && <p className="text-xs text-destructive">{exportError}</p>}
         </div>
         <Button
-          variant="outline"
-          size="sm"
-          onClick={handleExport}
-          disabled={exporting}
           className="shrink-0"
+          disabled={exporting}
+          size="sm"
+          variant="outline"
+          onClick={handleExport}
         >
           {exporting ? (
             <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
@@ -108,7 +109,7 @@ export function DangerZone({ userEmail }: DangerZoneProps) {
 
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="destructive" size="sm">
+            <Button size="sm" variant="destructive">
               <Trash2 className="h-3.5 w-3.5 mr-1.5" />
               Delete account
             </Button>
@@ -122,17 +123,17 @@ export function DangerZone({ userEmail }: DangerZoneProps) {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <Input
+              className="mt-1"
               placeholder={userEmail}
               value={confirmEmail}
               onChange={(e) => setConfirmEmail(e.target.value)}
-              className="mt-1"
             />
             <AlertDialogFooter className="mt-2">
               <AlertDialogCancel onClick={() => setConfirmEmail("")}>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                onClick={handleDelete}
-                disabled={confirmEmail !== userEmail || deleting}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                disabled={confirmEmail !== userEmail || deleting}
+                onClick={handleDelete}
               >
                 {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
                 {deleting ? "Deleting…" : "Yes, delete my account"}

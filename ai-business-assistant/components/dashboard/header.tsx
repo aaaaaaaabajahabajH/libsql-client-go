@@ -1,8 +1,5 @@
 "use client";
 
-import * as React from "react";
-import Link from "next/link";
-import { useTheme } from "next-themes";
 import {
   Search,
   LogOut,
@@ -16,10 +13,14 @@ import {
   FileText,
   BookMarked,
 } from "lucide-react";
+import Link from "next/link";
+import { useTheme } from "next-themes";
+import * as React from "react";
 
+import { logoutAction } from "@/actions/auth";
+import { NotificationDropdown } from "@/components/notifications/notification-dropdown";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,10 +30,11 @@ import {
   DropdownMenuTrigger,
   DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
-import { MobileNav } from "./mobile-nav";
-import { NotificationDropdown } from "@/components/notifications/notification-dropdown";
-import { logoutAction } from "@/actions/auth";
+import { Input } from "@/components/ui/input";
 import type { DbPlanType } from "@/types/database";
+
+import { MobileNav } from "./mobile-nav";
+
 
 export interface DashboardHeaderProps {
   userName: string | null;
@@ -79,10 +81,10 @@ export function DashboardHeader({
       {/* Mobile menu trigger + logo */}
       <div className="flex items-center gap-2 md:hidden">
         <MobileNav
-          plan={plan}
           creditsBalance={creditsBalance}
-          creditsTotal={creditsTotal}
           creditsPercentage={creditsPercentage}
+          creditsTotal={creditsTotal}
+          plan={plan}
         />
       </div>
 
@@ -91,9 +93,9 @@ export function DashboardHeader({
         <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
-            placeholder="Search tools, history…"
-            className="pl-9 h-9 bg-muted/40 border-transparent focus-visible:border-input focus-visible:bg-background text-sm"
             aria-label="Search"
+            className="pl-9 h-9 bg-muted/40 border-transparent focus-visible:border-input focus-visible:bg-background text-sm"
+            placeholder="Search tools, history…"
           />
         </div>
       </div>
@@ -111,11 +113,11 @@ export function DashboardHeader({
         {/* Theme toggle */}
         {mounted && (
           <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setTheme(isDark ? "light" : "dark")}
             aria-label="Toggle theme"
             className="h-9 w-9"
+            size="icon"
+            variant="ghost"
+            onClick={() => setTheme(isDark ? "light" : "dark")}
           >
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
@@ -129,7 +131,7 @@ export function DashboardHeader({
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background ml-1">
               <Avatar className="h-8 w-8 border border-border/50">
-                {avatarUrl && <AvatarImage src={avatarUrl} alt={userName ?? ""} />}
+                {avatarUrl && <AvatarImage alt={userName ?? ""} src={avatarUrl} />}
                 <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
                   {initials}
                 </AvatarFallback>
@@ -152,19 +154,19 @@ export function DashboardHeader({
 
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link href="/dashboard/profile" className="cursor-pointer">
+                <Link className="cursor-pointer" href="/dashboard/profile">
                   <User className="mr-2 h-4 w-4" />
                   Profile
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/dashboard/settings" className="cursor-pointer">
+                <Link className="cursor-pointer" href="/dashboard/settings">
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/dashboard/billing" className="cursor-pointer">
+                <Link className="cursor-pointer" href="/dashboard/billing">
                   <CreditCard className="mr-2 h-4 w-4" />
                   Billing
                 </Link>
@@ -175,19 +177,19 @@ export function DashboardHeader({
 
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link href="/dashboard/tools" className="cursor-pointer">
+                <Link className="cursor-pointer" href="/dashboard/tools">
                   <Sparkles className="mr-2 h-4 w-4" />
                   AI Tools
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/dashboard/history" className="cursor-pointer">
+                <Link className="cursor-pointer" href="/dashboard/history">
                   <FileText className="mr-2 h-4 w-4" />
                   History
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/dashboard/saved" className="cursor-pointer">
+                <Link className="cursor-pointer" href="/dashboard/saved">
                   <BookMarked className="mr-2 h-4 w-4" />
                   Saved Documents
                 </Link>
@@ -198,7 +200,7 @@ export function DashboardHeader({
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/pricing" className="cursor-pointer text-primary font-medium">
+                  <Link className="cursor-pointer text-primary font-medium" href="/pricing">
                     <Zap className="mr-2 h-4 w-4" />
                     Upgrade Plan
                   </Link>
@@ -209,9 +211,9 @@ export function DashboardHeader({
             <DropdownMenuSeparator />
 
             <DropdownMenuItem
-              onClick={handleLogout}
-              disabled={loggingOut}
               className="text-destructive focus:text-destructive cursor-pointer"
+              disabled={loggingOut}
+              onClick={handleLogout}
             >
               <LogOut className="mr-2 h-4 w-4" />
               {loggingOut ? "Signing out…" : "Sign Out"}

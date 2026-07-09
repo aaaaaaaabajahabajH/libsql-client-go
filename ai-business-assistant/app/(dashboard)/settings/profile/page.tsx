@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
+
 import { createClient } from "@/lib/supabase/server";
 import type { ProfileRow } from "@/types/database";
+
 import { ProfileForm } from "./profile-form";
 
 export const metadata = { title: "Profile Settings" };

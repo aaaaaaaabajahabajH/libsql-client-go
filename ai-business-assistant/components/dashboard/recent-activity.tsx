@@ -1,11 +1,12 @@
-import Link from "next/link";
 import { FileText, Mail, Share2, Receipt, PenTool, Globe, Clock, ArrowRight } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+
+import { EmptyState } from "@/components/common/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/common/empty-state";
-import { formatDate } from "@/utils/format";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DbToolType } from "@/types/database";
+import { formatDate } from "@/utils/format";
 
 const toolIconMap: Record<DbToolType, React.ComponentType<{ className?: string }>> = {
   "social-media": Share2,
@@ -56,7 +57,7 @@ export function RecentActivity({ activities }: RecentActivityProps) {
             Recent Activity
           </CardTitle>
           {activities.length > 0 && (
-            <Button asChild variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground">
+            <Button asChild className="h-7 text-xs text-muted-foreground" size="sm" variant="ghost">
               <Link href="/dashboard/history">
                 View all
                 <ArrowRight className="h-3 w-3 ml-1" />
@@ -69,11 +70,11 @@ export function RecentActivity({ activities }: RecentActivityProps) {
       <CardContent>
         {activities.length === 0 ? (
           <EmptyState
-            icon={Clock}
-            title="No activity yet"
-            description="Your AI-generated content will appear here after you use a tool."
-            size="sm"
             action={{ label: "Try a Tool", href: "/dashboard/tools" }}
+            description="Your AI-generated content will appear here after you use a tool."
+            icon={Clock}
+            size="sm"
+            title="No activity yet"
           />
         ) : (
           <div className="space-y-1">
@@ -94,7 +95,7 @@ export function RecentActivity({ activities }: RecentActivityProps) {
                       {toolLabelMap[item.tool]} &bull; {formatDate(item.createdAt)}
                     </p>
                   </div>
-                  <Badge variant="secondary" className="text-xs shrink-0 tabular-nums">
+                  <Badge className="text-xs shrink-0 tabular-nums" variant="secondary">
                     -{item.creditsUsed} cr
                   </Badge>
                 </div>

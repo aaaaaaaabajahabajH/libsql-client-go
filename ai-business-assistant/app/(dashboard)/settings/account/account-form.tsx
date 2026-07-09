@@ -1,10 +1,16 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
 import * as React from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
+
+import { changePassword, updateAppPreferencesAction } from "@/actions/settings";
+import { DangerZone } from "@/components/settings/danger-zone";
+import { SaveFeedback } from "@/components/settings/save-feedback";
+import { SettingsSection, SettingsRow } from "@/components/settings/settings-section";
+import { ThemeSelector } from "@/components/settings/theme-selector";
 import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/password-input";
 import {
@@ -14,11 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SettingsSection, SettingsRow } from "@/components/settings/settings-section";
-import { ThemeSelector } from "@/components/settings/theme-selector";
-import { DangerZone } from "@/components/settings/danger-zone";
-import { SaveFeedback } from "@/components/settings/save-feedback";
-import { changePassword, updateAppPreferencesAction } from "@/actions/settings";
 import { LANGUAGES } from "@/utils/locale-data";
 
 const passwordSchema = z
@@ -82,8 +83,8 @@ export function AccountForm({ userEmail, currentTheme, currentLanguage }: Accoun
       {/* Change password */}
       <form onSubmit={handleSubmit(onPasswordSubmit)}>
         <SettingsSection
-          title="Change Password"
           description="Choose a new password for your account."
+          title="Change Password"
         >
           <SettingsRow label="New password">
             <PasswordInput {...register("newPassword")} placeholder="Min 8 characters" />
@@ -100,12 +101,12 @@ export function AccountForm({ userEmail, currentTheme, currentLanguage }: Accoun
           </SettingsRow>
 
           <div className="flex items-center gap-4 pt-1">
-            <Button type="submit" disabled={isSubmitting} size="sm">
+            <Button disabled={isSubmitting} size="sm" type="submit">
               {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Update password
             </Button>
             {passwordStatus && (
-              <SaveFeedback success={passwordStatus.success} message={passwordStatus.message} />
+              <SaveFeedback message={passwordStatus.message} success={passwordStatus.success} />
             )}
           </div>
         </SettingsSection>
@@ -113,8 +114,8 @@ export function AccountForm({ userEmail, currentTheme, currentLanguage }: Accoun
 
       {/* Appearance */}
       <SettingsSection
-        title="Appearance & Language"
         description="Control how the app looks and what language the interface uses."
+        title="Appearance & Language"
       >
         <SettingsRow label="Theme">
           <ThemeSelector value={theme} onChange={setTheme} />
@@ -134,20 +135,20 @@ export function AccountForm({ userEmail, currentTheme, currentLanguage }: Accoun
         </SettingsRow>
 
         <div className="flex items-center gap-4 pt-1">
-          <Button onClick={savePreferences} disabled={savingPrefs} size="sm">
+          <Button disabled={savingPrefs} size="sm" onClick={savePreferences}>
             {savingPrefs && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Save preferences
           </Button>
           {prefsStatus && (
-            <SaveFeedback success={prefsStatus.success} message={prefsStatus.message} />
+            <SaveFeedback message={prefsStatus.message} success={prefsStatus.success} />
           )}
         </div>
       </SettingsSection>
 
       {/* Danger zone */}
       <SettingsSection
-        title="Danger Zone"
         description="Irreversible actions. Proceed with caution."
+        title="Danger Zone"
       >
         <DangerZone userEmail={userEmail} />
       </SettingsSection>

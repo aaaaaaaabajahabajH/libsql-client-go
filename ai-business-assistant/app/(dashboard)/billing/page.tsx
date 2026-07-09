@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import type { CreditsRow, SubscriptionRow } from "@/types/database";
+
 import { BillingClient } from "./billing-client";
 
 export const metadata = {
@@ -29,5 +30,5 @@ export default async function BillingPage() {
       .single<CreditsRow>(),
   ]);
 
-  return <BillingClient subscription={subscription} credits={credits} />;
+  return <BillingClient credits={credits} subscription={subscription} />;
 }

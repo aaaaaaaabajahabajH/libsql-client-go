@@ -1,7 +1,5 @@
 "use client";
 
-import * as React from "react";
-import Link from "next/link";
 import {
   CreditCard,
   Receipt,
@@ -11,8 +9,15 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import Link from "next/link";
+import * as React from "react";
+
+import {
+  createCheckoutSession,
+  createPortalSession,
+  cancelSubscription,
+  resumeSubscription,
+} from "@/actions/billing";
 import {
   BillingToggle,
   PlanCard,
@@ -20,15 +25,11 @@ import {
   UpgradeDialog,
   CurrentPlanBanner,
 } from "@/components/pricing";
-import { PLAN_CONFIGS } from "@/utils/constants";
-import {
-  createCheckoutSession,
-  createPortalSession,
-  cancelSubscription,
-  resumeSubscription,
-} from "@/actions/billing";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import type { DbPlanType } from "@/types/database";
 import type { CreditsRow, SubscriptionRow } from "@/types/database";
+import { PLAN_CONFIGS } from "@/utils/constants";
 
 interface Props {
   subscription: SubscriptionRow | null;
@@ -118,10 +119,10 @@ export function BillingClient({ subscription, credits }: Props) {
 
         {isPaid && (
           <Button
-            variant="outline"
-            size="sm"
-            onClick={handleManageBilling}
             disabled={portalLoading}
+            size="sm"
+            variant="outline"
+            onClick={handleManageBilling}
           >
             {portalLoading ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -137,10 +138,10 @@ export function BillingClient({ subscription, credits }: Props) {
       {/* Current plan banner */}
       <section>
         <CurrentPlanBanner
-          plan={plan}
           creditsBalance={creditsBalance}
           creditsTotal={creditsTotal}
           nextBillingDate={nextBillingDate}
+          plan={plan}
           showUpgradeButton={false}
         />
       </section>
@@ -179,8 +180,8 @@ export function BillingClient({ subscription, credits }: Props) {
               <span className="font-semibold">Active subscription.</span>{" "}
               Your plan renews automatically.{" "}
               <button
-                onClick={handleManageBilling}
                 className="underline underline-offset-2 hover:no-underline"
+                onClick={handleManageBilling}
               >
                 Manage billing
               </button>{" "}
@@ -188,11 +189,11 @@ export function BillingClient({ subscription, credits }: Props) {
             </div>
           </div>
           <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleCancelSubscription}
-            disabled={cancelLoading}
             className="text-destructive hover:text-destructive shrink-0"
+            disabled={cancelLoading}
+            size="sm"
+            variant="ghost"
+            onClick={handleCancelSubscription}
           >
             {cancelLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Cancel plan"}
           </Button>
@@ -217,11 +218,11 @@ export function BillingClient({ subscription, credits }: Props) {
             </div>
           </div>
           <Button
-            variant="outline"
-            size="sm"
-            onClick={handleResumeSubscription}
-            disabled={resumeLoading}
             className="shrink-0"
+            disabled={resumeLoading}
+            size="sm"
+            variant="outline"
+            onClick={handleResumeSubscription}
           >
             {resumeLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Resume plan"}
           </Button>
@@ -246,10 +247,10 @@ export function BillingClient({ subscription, credits }: Props) {
           {PLAN_CONFIGS.map((p) => (
             <PlanCard
               key={p.id}
-              plan={p}
-              isAnnual={isAnnual}
-              currentPlan={plan}
               isAuthenticated
+              currentPlan={plan}
+              isAnnual={isAnnual}
+              plan={p}
               onUpgrade={handleUpgrade}
             />
           ))}
@@ -281,13 +282,13 @@ export function BillingClient({ subscription, credits }: Props) {
           </p>
         </div>
         {isPaid ? (
-          <Button variant="outline" size="sm" onClick={handleManageBilling} disabled={portalLoading}>
+          <Button disabled={portalLoading} size="sm" variant="outline" onClick={handleManageBilling}>
             {portalLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Open Portal"}
           </Button>
         ) : (
           <Link
-            href="/pricing"
             className="text-xs font-medium text-primary underline-offset-4 hover:underline shrink-0"
+            href="/pricing"
           >
             Upgrade to access
           </Link>
@@ -295,12 +296,12 @@ export function BillingClient({ subscription, credits }: Props) {
       </section>
 
       <UpgradeDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        targetPlan={targetPlan}
         currentPlan={plan}
         isAnnual={isAnnual}
+        open={dialogOpen}
+        targetPlan={targetPlan}
         onConfirm={handleConfirmUpgrade}
+        onOpenChange={setDialogOpen}
       />
     </div>
   );

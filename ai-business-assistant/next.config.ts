@@ -23,6 +23,7 @@ const cspDirectives = [
     isDev ? "'unsafe-eval'" : "",
     "https://js.stripe.com",
     "https://m.stripe.network",
+    "https://www.googletagmanager.com",
   ]
     .filter(Boolean)
     .join(" "),
@@ -35,6 +36,7 @@ const cspDirectives = [
     "https://*.supabase.co",
     "https://avatars.githubusercontent.com",
     "https://lh3.googleusercontent.com",
+    "https://www.google-analytics.com",
   ].join(" "),
   "font-src 'self'",
   [
@@ -43,6 +45,10 @@ const cspDirectives = [
     `wss://${supabaseWsHost}`,
     supabaseOrigin,
     "https://api.stripe.com",
+    "https://www.google-analytics.com",
+    "https://www.googletagmanager.com",
+    "https://us.i.posthog.com",
+    "https://us-assets.i.posthog.com",
     isDev ? "ws://localhost:*" : "",
   ]
     .filter(Boolean)
@@ -71,6 +77,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   compress: true,
   poweredByHeader: false,
 
@@ -122,6 +129,8 @@ export default withSentryConfig(nextConfig, {
   widenClientFileUpload: true,
   tunnelRoute: "/monitoring-tunnel",
   sourcemaps: { disable: true },
-  disableLogger: true,
-  automaticVercelMonitors: true,
+  webpack: {
+    treeshake: { removeDebugLogging: true },
+    automaticVercelMonitors: true,
+  },
 });

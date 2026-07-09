@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { APP_DESCRIPTION, APP_NAME } from "@/utils/constants";
 import {
   LandingNavbar,
   Hero,
@@ -14,6 +13,7 @@ import {
   CTA,
   Footer,
 } from "@/components/landing";
+import { APP_DESCRIPTION, APP_NAME } from "@/utils/constants";
 
 export const metadata: Metadata = {
   title: `${APP_NAME} — Grow Faster with AI`,

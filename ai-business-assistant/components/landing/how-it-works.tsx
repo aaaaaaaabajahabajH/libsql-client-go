@@ -1,4 +1,5 @@
 import { UserPlus, Sparkles, Download } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -40,11 +41,11 @@ const steps = [
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="py-20 sm:py-28 bg-muted/20">
+    <section className="py-20 sm:py-28 bg-muted/20" id="how-it-works">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16 space-y-4">
-          <Badge variant="secondary" className="text-xs font-semibold px-3 py-1">
+          <Badge className="text-xs font-semibold px-3 py-1" variant="secondary">
             3 Simple Steps
           </Badge>
           <h2 className="text-3xl sm:text-5xl font-bold tracking-tight">

@@ -1,4 +1,5 @@
 import { FileText, History, Zap, RefreshCw } from "lucide-react";
+
 import { SettingsSection } from "@/components/settings/settings-section";
 import { StorageRing } from "@/components/settings/storage-ring";
 import { Badge } from "@/components/ui/badge";
@@ -56,29 +57,29 @@ export function StorageView({
     <div className="space-y-10">
       {/* Content storage */}
       <SettingsSection
-        title="Content Storage"
         description="Documents and history stored in your workspace."
+        title="Content Storage"
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <StatCard
             icon={FileText}
             label="Saved documents"
-            value={savedDocuments.toLocaleString()}
             sublabel="Pinned outputs kept in your library"
+            value={savedDocuments.toLocaleString()}
           />
           <StatCard
             icon={History}
             label="History entries"
-            value={historyEntries.toLocaleString()}
             sublabel="AI generation log (auto-purged after 90 days)"
+            value={historyEntries.toLocaleString()}
           />
         </div>
       </SettingsSection>
 
       {/* Monthly credits */}
       <SettingsSection
-        title="Monthly Credits"
         description="Credits are consumed each time you generate AI content. They reset on your billing cycle."
+        title="Monthly Credits"
       >
         {isUnlimited ? (
           <div className="rounded-xl border border-border p-6 flex flex-col items-center gap-3 text-center">
@@ -91,17 +92,17 @@ export function StorageView({
                 Your Pro plan includes unlimited AI generation.
               </p>
             </div>
-            <Badge variant="secondary" className="text-[11px]">Pro plan</Badge>
+            <Badge className="text-[11px]" variant="secondary">Pro plan</Badge>
           </div>
         ) : (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-8">
               <StorageRing
+                colorClass="text-primary"
                 label="Credits used"
-                value={creditsUsed}
                 max={creditsAllowance}
                 unit="used"
-                colorClass="text-primary"
+                value={creditsUsed}
               />
               <div className="flex-1 space-y-3">
                 <div className="grid grid-cols-2 gap-3">

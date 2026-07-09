@@ -1,5 +1,6 @@
-import Link from "next/link";
 import { ArrowRight, Zap, Shield, RefreshCw } from "lucide-react";
+import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
 
 const guarantees = [
@@ -43,8 +44,8 @@ export function CTA() {
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button
                 asChild
-                size="lg"
                 className="h-12 px-8 text-base font-semibold bg-white text-primary hover:bg-white/90 shadow-lg"
+                size="lg"
               >
                 <Link href="/register">
                   <Zap className="h-4 w-4 mr-2" />
@@ -54,9 +55,9 @@ export function CTA() {
               </Button>
               <Button
                 asChild
+                className="h-12 px-8 text-base border-white/30 text-white bg-transparent hover:bg-white/10"
                 size="lg"
                 variant="outline"
-                className="h-12 px-8 text-base border-white/30 text-white bg-transparent hover:bg-white/10"
               >
                 <Link href="/pricing">View Pricing</Link>
               </Button>

@@ -1,16 +1,17 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2, Users, Key } from "lucide-react";
 import * as React from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, Users, Key } from "lucide-react";
+
+import { updateWorkspaceAction } from "@/actions/settings";
+import { SaveFeedback } from "@/components/settings/save-feedback";
+import { SettingsSection, SettingsRow } from "@/components/settings/settings-section";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { SettingsSection, SettingsRow } from "@/components/settings/settings-section";
-import { SaveFeedback } from "@/components/settings/save-feedback";
-import { updateWorkspaceAction } from "@/actions/settings";
 import type { UserPreferencesRow } from "@/types/database";
 
 const schema = z.object({
@@ -45,15 +46,15 @@ export function WorkspaceForm({ preferences }: WorkspaceFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
+    <form className="space-y-10" onSubmit={handleSubmit(onSubmit)}>
       {/* Workspace identity */}
       <SettingsSection
-        title="Workspace Identity"
         description="Personalise your workspace name for a branded experience."
+        title="Workspace Identity"
       >
         <SettingsRow
-          label="Workspace name"
           description="Displayed in the sidebar and exported documents."
+          label="Workspace name"
         >
           <Input
             {...register("workspace_name")}
@@ -65,18 +66,18 @@ export function WorkspaceForm({ preferences }: WorkspaceFormProps) {
         </SettingsRow>
 
         <div className="flex items-center gap-4 pt-1">
-          <Button type="submit" disabled={isSubmitting} size="sm">
+          <Button disabled={isSubmitting} size="sm" type="submit">
             {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Save workspace
           </Button>
-          {status && <SaveFeedback success={status.success} message={status.message} />}
+          {status && <SaveFeedback message={status.message} success={status.success} />}
         </div>
       </SettingsSection>
 
       {/* Team (future) */}
       <SettingsSection
-        title="Team Members"
         description="Invite colleagues to collaborate in your workspace."
+        title="Team Members"
       >
         <div className="rounded-xl border border-dashed border-border p-6 flex flex-col items-center gap-3 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
@@ -88,14 +89,14 @@ export function WorkspaceForm({ preferences }: WorkspaceFormProps) {
               Multi-user workspaces are available on the Enterprise plan.
             </p>
           </div>
-          <Badge variant="secondary" className="text-[11px]">Coming soon</Badge>
+          <Badge className="text-[11px]" variant="secondary">Coming soon</Badge>
         </div>
       </SettingsSection>
 
       {/* API Keys (future) */}
       <SettingsSection
-        title="API Access"
         description="Use your API key to integrate AI Business Assistant into your own products."
+        title="API Access"
       >
         <div className="rounded-xl border border-dashed border-border p-6 flex flex-col items-center gap-3 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
@@ -107,7 +108,7 @@ export function WorkspaceForm({ preferences }: WorkspaceFormProps) {
               Programmatic access is available on the Pro and Enterprise plans.
             </p>
           </div>
-          <Badge variant="secondary" className="text-[11px]">Coming soon</Badge>
+          <Badge className="text-[11px]" variant="secondary">Coming soon</Badge>
         </div>
       </SettingsSection>
     </form>

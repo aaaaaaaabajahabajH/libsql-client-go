@@ -1,7 +1,8 @@
 "use client";
 
-import * as React from "react";
 import { ChevronDown } from "lucide-react";
+import * as React from "react";
+
 import { cn } from "@/lib/utils";
 
 interface FaqItem {
@@ -56,10 +57,10 @@ function FaqRow({ item, isOpen, onToggle }: { item: FaqItem; isOpen: boolean; on
   return (
     <div className="border-b border-border/60 last:border-0">
       <button
+        aria-expanded={isOpen}
+        className="flex w-full items-center justify-between gap-4 py-4 text-left transition-colors hover:text-primary"
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center justify-between gap-4 py-4 text-left transition-colors hover:text-primary"
-        aria-expanded={isOpen}
       >
         <span className="text-sm font-semibold leading-snug">{item.question}</span>
         <ChevronDown
@@ -99,8 +100,8 @@ export function PricingFaq() {
         {PRICING_FAQS.map((item, i) => (
           <FaqRow
             key={item.question}
-            item={item}
             isOpen={openIndex === i}
+            item={item}
             onToggle={() => setOpenIndex(openIndex === i ? null : i)}
           />
         ))}
@@ -109,8 +110,8 @@ export function PricingFaq() {
       <p className="mt-6 text-center text-sm text-muted-foreground">
         Still have questions?{" "}
         <a
-          href="mailto:support@aibusiness.ai"
           className="font-medium text-primary underline-offset-4 hover:underline"
+          href="mailto:support@aibusiness.ai"
         >
           Contact our support team
         </a>

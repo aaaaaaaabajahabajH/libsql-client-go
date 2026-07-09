@@ -20,8 +20,8 @@ export default function NotFound() {
         </p>
       </div>
       <Link
-        href="/"
         className="rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        href="/"
       >
         Back to Home
       </Link>

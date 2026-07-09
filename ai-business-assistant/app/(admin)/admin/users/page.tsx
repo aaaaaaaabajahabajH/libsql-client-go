@@ -1,9 +1,12 @@
-import Link from "next/link";
 import { Search, UserX, ChevronLeft, ChevronRight } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+
+import { PageHeader } from "@/components/admin/page-header";
+import { StatusBadge } from "@/components/admin/status-badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -11,8 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { StatusBadge } from "@/components/admin/status-badge";
-import { PageHeader } from "@/components/admin/page-header";
 import { listAdminUsers } from "@/services/admin/users";
 import type { DbPlanType } from "@/types/database";
 
@@ -39,13 +40,13 @@ function UserSearch({ q, plan }: { q: string; plan: string }) {
       <div className="relative flex-1 max-w-sm">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          name="q"
-          defaultValue={q}
-          placeholder="Search by name or email…"
           className="pl-8"
+          defaultValue={q}
+          name="q"
+          placeholder="Search by name or email…"
         />
       </div>
-      <Select name="plan" defaultValue={plan}>
+      <Select defaultValue={plan} name="plan">
         <SelectTrigger className="w-36">
           <SelectValue placeholder="All plans" />
         </SelectTrigger>
@@ -57,7 +58,7 @@ function UserSearch({ q, plan }: { q: string; plan: string }) {
           <SelectItem value="enterprise">Enterprise</SelectItem>
         </SelectContent>
       </Select>
-      <Button type="submit" size="sm">Filter</Button>
+      <Button size="sm" type="submit">Filter</Button>
     </form>
   );
 }
@@ -82,11 +83,11 @@ export default async function UsersPage({
   return (
     <>
       <PageHeader
-        title="Users"
         description={`${total.toLocaleString()} total users`}
+        title="Users"
       />
 
-      <UserSearch q={q} plan={plan} />
+      <UserSearch plan={plan} q={q} />
 
       <div className="rounded-xl border border-border overflow-hidden">
         <table className="w-full text-sm">
@@ -103,7 +104,7 @@ export default async function UsersPage({
           <tbody className="divide-y divide-border">
             {users.length === 0 && (
               <tr>
-                <td colSpan={6} className="text-center py-12 text-muted-foreground">
+                <td className="text-center py-12 text-muted-foreground" colSpan={6}>
                   <UserX className="h-8 w-8 mx-auto mb-2 opacity-40" />
                   No users found
                 </td>
@@ -134,7 +135,7 @@ export default async function UsersPage({
                     </div>
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
-                    <Badge variant={PLAN_BADGE[user.plan] as "default" | "secondary" | "outline" ?? "secondary"} className="capitalize text-[11px]">
+                    <Badge className="capitalize text-[11px]" variant={PLAN_BADGE[user.plan] as "default" | "secondary" | "outline" ?? "secondary"}>
                       {user.plan}
                     </Badge>
                   </td>
@@ -150,7 +151,7 @@ export default async function UsersPage({
                     <StatusBadge status={user.is_suspended ? "suspended" : "active"} />
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Button asChild variant="ghost" size="sm">
+                    <Button asChild size="sm" variant="ghost">
                       <Link href={`/admin/users/${user.id}`}>View</Link>
                     </Button>
                   </td>
@@ -170,9 +171,9 @@ export default async function UsersPage({
           <div className="flex gap-2">
             <Button
               asChild
-              variant="outline"
-              size="sm"
               disabled={page <= 1}
+              size="sm"
+              variant="outline"
             >
               <Link href={`?q=${q}&plan=${plan}&page=${page - 1}`}>
                 <ChevronLeft className="h-4 w-4" />
@@ -181,9 +182,9 @@ export default async function UsersPage({
             </Button>
             <Button
               asChild
-              variant="outline"
-              size="sm"
               disabled={page >= totalPages}
+              size="sm"
+              variant="outline"
             >
               <Link href={`?q=${q}&plan=${plan}&page=${page + 1}`}>
                 Next

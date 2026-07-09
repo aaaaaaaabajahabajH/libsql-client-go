@@ -48,8 +48,8 @@ export function PasswordStrength({ password }: PasswordStrengthProps) {
   const labelColor = LABEL_COLORS[score] ?? "text-muted-foreground";
 
   return (
-    <div className="mt-2 space-y-1.5" aria-label={`Password strength: ${label}`}>
-      <div className="flex gap-1" role="progressbar" aria-valuenow={score} aria-valuemin={0} aria-valuemax={5}>
+    <div aria-label={`Password strength: ${label}`} className="mt-2 space-y-1.5">
+      <div aria-valuemax={5} aria-valuemin={0} aria-valuenow={score} className="flex gap-1" role="progressbar">
         {Array.from({ length: 5 }, (_, i) => (
           <div
             key={i}

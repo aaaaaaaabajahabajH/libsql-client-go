@@ -1,10 +1,11 @@
 import { Sparkles, Zap, Activity, TrendingUp } from "lucide-react";
-import { StatCard } from "@/components/admin/stat-card";
-import { ChartCard } from "@/components/admin/chart-card";
+
 import { AreaChart } from "@/components/admin/area-chart";
 import { BarChart } from "@/components/admin/bar-chart";
+import { ChartCard } from "@/components/admin/chart-card";
 import { DonutChart } from "@/components/admin/donut-chart";
 import { PageHeader } from "@/components/admin/page-header";
+import { StatCard } from "@/components/admin/stat-card";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   getDailyAIRequests,
@@ -63,26 +64,26 @@ export default async function AIAnalyticsPage() {
 
   return (
     <>
-      <PageHeader title="AI Analytics" description="Usage stats for the last 30 days" />
+      <PageHeader description="Usage stats for the last 30 days" title="AI Analytics" />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Requests Today" value={stats.aiRequestsToday.toLocaleString()} icon={Sparkles} />
-        <StatCard label="Requests (Month)" value={stats.aiRequestsMonth.toLocaleString()} icon={Activity} />
-        <StatCard label="Credits Consumed" value={totalCredits.toLocaleString()} icon={Zap} />
+        <StatCard icon={Sparkles} label="Requests Today" value={stats.aiRequestsToday.toLocaleString()} />
+        <StatCard icon={Activity} label="Requests (Month)" value={stats.aiRequestsMonth.toLocaleString()} />
+        <StatCard icon={Zap} label="Credits Consumed" value={totalCredits.toLocaleString()} />
         <StatCard
+          icon={TrendingUp}
           label="AI Errors (30d)"
           value={errorCount.toLocaleString()}
-          icon={TrendingUp}
           variant={errorCount > 10 ? "danger" : "default"}
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <ChartCard title="Daily AI Requests" description="Last 30 days" height={220}>
-          <AreaChart data={dailyRequests} label="Requests" color="#6366f1" />
+        <ChartCard description="Last 30 days" height={220} title="Daily AI Requests">
+          <AreaChart color="#6366f1" data={dailyRequests} label="Requests" />
         </ChartCard>
 
-        <ChartCard title="Provider Usage" description="Preferred AI provider per user" height={220}>
+        <ChartCard description="Preferred AI provider per user" height={220} title="Provider Usage">
           {providerDonutData.length > 0 ? (
             <DonutChart data={providerDonutData} />
           ) : (
@@ -94,9 +95,9 @@ export default async function AIAnalyticsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="Tool Usage (30d)" description="Requests per tool" height={240}>
+        <ChartCard description="Requests per tool" height={240} title="Tool Usage (30d)">
           {toolBarData.length > 0 ? (
-            <BarChart data={toolBarData} horizontal />
+            <BarChart horizontal data={toolBarData} />
           ) : (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
               No tool usage yet
@@ -104,9 +105,9 @@ export default async function AIAnalyticsPage() {
           )}
         </ChartCard>
 
-        <ChartCard title="Credits by Tool" description="Credits consumed per tool" height={240}>
+        <ChartCard description="Credits consumed per tool" height={240} title="Credits by Tool">
           {creditsByTool.length > 0 ? (
-            <BarChart data={creditsByTool} horizontal color="#8b5cf6" />
+            <BarChart horizontal color="#8b5cf6" data={creditsByTool} />
           ) : (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
               No credit data yet

@@ -1,8 +1,5 @@
 "use client";
 
-import * as React from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 import {
   Bot,
   LayoutDashboard,
@@ -18,8 +15,11 @@ import {
   Zap,
   TrendingUp,
 } from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import * as React from "react";
 
-import { cn } from "@/lib/utils";
+import { logoutAction } from "@/actions/auth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -31,7 +31,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { logoutAction } from "@/actions/auth";
+import { cn } from "@/lib/utils";
 import type { DbPlanType } from "@/types/database";
 
 /* ─── Nav config ─────────────────────────────────────────── */
@@ -86,21 +86,21 @@ function NavLink({ item, collapsed, pathname }: NavLinkProps) {
 
   const inner = (
     <Link
-      href={item.href}
+      aria-current={isActive ? "page" : undefined}
       className={cn(
         "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
         "text-sidebar-foreground/70 hover:bg-sidebar-accent/20 hover:text-sidebar-foreground",
         isActive && "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm hover:bg-sidebar-accent",
         collapsed && "justify-center px-2.5",
       )}
-      aria-current={isActive ? "page" : undefined}
+      href={item.href}
     >
       <item.icon className="h-4 w-4 shrink-0" />
       {!collapsed && (
         <>
           <span className="flex-1 truncate">{item.label}</span>
           {item.badge && (
-            <Badge variant="secondary" className="text-[10px] h-4 px-1.5 ml-auto">
+            <Badge className="text-[10px] h-4 px-1.5 ml-auto" variant="secondary">
               {item.badge}
             </Badge>
           )}
@@ -113,7 +113,7 @@ function NavLink({ item, collapsed, pathname }: NavLinkProps) {
     return (
       <Tooltip delayDuration={0}>
         <TooltipTrigger asChild>{inner}</TooltipTrigger>
-        <TooltipContent side="right" className="font-medium">
+        <TooltipContent className="font-medium" side="right">
           {item.label}
         </TooltipContent>
       </Tooltip>
@@ -161,11 +161,11 @@ export function Sidebar({ plan, creditsBalance, creditsTotal, creditsPercentage 
         {/* Logo */}
         <div className="flex h-16 items-center border-b border-sidebar-border px-4 shrink-0">
           <Link
-            href="/dashboard"
             className={cn(
               "flex items-center gap-2.5 font-bold min-w-0",
               collapsed && "justify-center w-full",
             )}
+            href="/dashboard"
           >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent shadow-glow-sm">
               <Bot className="h-5 w-5 text-sidebar-accent-foreground" />
@@ -185,7 +185,7 @@ export function Sidebar({ plan, creditsBalance, creditsTotal, creditsPercentage 
 
         {/* Collapse toggle */}
         <button
-          onClick={() => setCollapsed((c) => !c)}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           className={cn(
             "absolute -right-3 top-[4.5rem] z-20",
             "flex h-6 w-6 items-center justify-center",
@@ -193,7 +193,7 @@ export function Sidebar({ plan, creditsBalance, creditsTotal, creditsPercentage 
             "text-sidebar-foreground/60 hover:text-sidebar-foreground",
             "transition-colors duration-200",
           )}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          onClick={() => setCollapsed((c) => !c)}
         >
           {collapsed ? (
             <ChevronRight className="h-3 w-3" />
@@ -212,7 +212,7 @@ export function Sidebar({ plan, creditsBalance, creditsTotal, creditsPercentage 
                 </p>
               )}
               {mainNav.map((item) => (
-                <NavLink key={item.href} item={item} collapsed={collapsed} pathname={pathname} />
+                <NavLink key={item.href} collapsed={collapsed} item={item} pathname={pathname} />
               ))}
             </div>
 
@@ -225,7 +225,7 @@ export function Sidebar({ plan, creditsBalance, creditsTotal, creditsPercentage 
                 </p>
               )}
               {bottomNav.map((item) => (
-                <NavLink key={item.href} item={item} collapsed={collapsed} pathname={pathname} />
+                <NavLink key={item.href} collapsed={collapsed} item={item} pathname={pathname} />
               ))}
 
               {/* Logout */}
@@ -233,22 +233,22 @@ export function Sidebar({ plan, creditsBalance, creditsTotal, creditsPercentage 
                 <Tooltip delayDuration={0}>
                   <TooltipTrigger asChild>
                     <button
-                      onClick={handleLogout}
-                      disabled={loggingOut}
                       className="flex w-full items-center justify-center rounded-lg px-2.5 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 disabled:opacity-50"
+                      disabled={loggingOut}
+                      onClick={handleLogout}
                     >
                       <LogOut className="h-4 w-4 shrink-0" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="right" className="font-medium">
+                  <TooltipContent className="font-medium" side="right">
                     Sign Out
                   </TooltipContent>
                 </Tooltip>
               ) : (
                 <button
-                  onClick={handleLogout}
-                  disabled={loggingOut}
                   className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 disabled:opacity-50"
+                  disabled={loggingOut}
+                  onClick={handleLogout}
                 >
                   <LogOut className="h-4 w-4 shrink-0" />
                   <span>{loggingOut ? "Signing out…" : "Sign Out"}</span>
@@ -280,8 +280,8 @@ export function Sidebar({ plan, creditsBalance, creditsTotal, creditsPercentage 
             {/* Progress bar */}
             <div className="space-y-1.5">
               <Progress
-                value={creditsPercentage}
                 className="h-1.5 bg-sidebar-border"
+                value={creditsPercentage}
               />
               <div className="flex items-center justify-between">
                 <span className="text-[11px] text-sidebar-foreground/50">
@@ -297,8 +297,8 @@ export function Sidebar({ plan, creditsBalance, creditsTotal, creditsPercentage 
             {isUpgradeable && (
               <Button
                 asChild
-                size="sm"
                 className="w-full h-8 text-xs bg-sidebar-accent hover:bg-sidebar-accent/90 text-sidebar-accent-foreground"
+                size="sm"
               >
                 <Link href="/pricing">
                   <TrendingUp className="h-3.5 w-3.5 mr-1.5" />

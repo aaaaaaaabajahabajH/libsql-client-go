@@ -1,4 +1,5 @@
 import { Zap } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -14,13 +15,13 @@ export function CreditDisplay({ cost, balance, className }: CreditDisplayProps) 
   return (
     <div className={cn("flex items-center gap-2 text-sm", className)}>
       <Badge
-        variant="outline"
         className={cn(
           "gap-1 font-semibold px-2.5 py-1",
           insufficient
             ? "border-destructive/50 bg-destructive/10 text-destructive"
             : "border-primary/30 bg-primary/10 text-primary",
         )}
+        variant="outline"
       >
         <Zap className="h-3 w-3" />
         {cost} credits

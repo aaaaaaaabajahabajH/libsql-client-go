@@ -1,13 +1,17 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
 import * as React from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
+
+import { updateProfile } from "@/actions/settings";
+import { AvatarUpload } from "@/components/settings/avatar-upload";
+import { SaveFeedback } from "@/components/settings/save-feedback";
+import { SettingsSection, SettingsRow } from "@/components/settings/settings-section";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -15,10 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SettingsSection, SettingsRow } from "@/components/settings/settings-section";
-import { AvatarUpload } from "@/components/settings/avatar-upload";
-import { SaveFeedback } from "@/components/settings/save-feedback";
-import { updateProfile } from "@/actions/settings";
+import { Textarea } from "@/components/ui/textarea";
 import type { ProfileRow } from "@/types/database";
 import { TIMEZONES, COUNTRIES } from "@/utils/locale-data";
 
@@ -82,9 +83,9 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
+    <form className="space-y-10" onSubmit={handleSubmit(onSubmit)}>
       {/* Avatar */}
-      <SettingsSection title="Profile Picture" noDivider>
+      <SettingsSection noDivider title="Profile Picture">
         <AvatarUpload
           currentUrl={avatarUrl}
           displayName={profile?.full_name ?? null}
@@ -94,8 +95,8 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
 
       {/* Personal info */}
       <SettingsSection
-        title="Personal Information"
         description="This information is visible on your public profile."
+        title="Personal Information"
       >
         <SettingsRow label="Full name">
           <Input {...register("full_name")} placeholder="Jane Smith" />
@@ -104,27 +105,27 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
           )}
         </SettingsRow>
 
-        <SettingsRow label="Username" description="Unique handle for your account. Letters, numbers, _ and -.">
+        <SettingsRow description="Unique handle for your account. Letters, numbers, _ and -." label="Username">
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">@</span>
-            <Input {...register("username")} placeholder="janesmith" className="pl-7" />
+            <Input {...register("username")} className="pl-7" placeholder="janesmith" />
           </div>
           {errors.username && (
             <p className="mt-1 text-xs text-destructive">{errors.username.message}</p>
           )}
         </SettingsRow>
 
-        <SettingsRow label="Email" description="Managed by your auth provider.">
-          <Input value={userEmail} disabled className="bg-muted text-muted-foreground" />
+        <SettingsRow description="Managed by your auth provider." label="Email">
+          <Input disabled className="bg-muted text-muted-foreground" value={userEmail} />
         </SettingsRow>
 
-        <SettingsRow label="Bio" description="Up to 500 characters about yourself.">
+        <SettingsRow description="Up to 500 characters about yourself." label="Bio">
           <div>
             <Textarea
               {...register("bio")}
-              rows={4}
-              placeholder="Tell the world a little about yourself…"
               className="resize-none"
+              placeholder="Tell the world a little about yourself…"
+              rows={4}
             />
             <p className="mt-1 text-right text-[11px] text-muted-foreground">
               {bio.length} / 500
@@ -138,8 +139,8 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
 
       {/* Professional info */}
       <SettingsSection
-        title="Professional Details"
         description="Show your work context to teammates and collaborators."
+        title="Professional Details"
       >
         <SettingsRow label="Job title">
           <Input {...register("job_title")} placeholder="Product Manager" />
@@ -183,7 +184,7 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
           </Select>
         </SettingsRow>
 
-        <SettingsRow label="Timezone" description="Used to display dates and schedule resets.">
+        <SettingsRow description="Used to display dates and schedule resets." label="Timezone">
           <Select
             value={watch("timezone") ?? "UTC"}
             onValueChange={(v) => setValue("timezone", v)}
@@ -204,12 +205,12 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
 
       {/* Footer */}
       <div className="flex items-center gap-4 pt-2">
-        <Button type="submit" disabled={isSubmitting}>
+        <Button disabled={isSubmitting} type="submit">
           {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           Save changes
         </Button>
         {status && (
-          <SaveFeedback success={status.success} message={status.message} />
+          <SaveFeedback message={status.message} success={status.success} />
         )}
       </div>
     </form>

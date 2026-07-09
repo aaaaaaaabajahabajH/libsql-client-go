@@ -1,7 +1,7 @@
-import type { AIProvider } from "./types";
-import { OpenAIProvider } from "./openai";
 import { AnthropicProvider } from "./anthropic";
 import { GeminiProvider } from "./gemini";
+import { OpenAIProvider } from "./openai";
+import type { AIProvider } from "./types";
 
 export function getProvider(): AIProvider {
   const name = (process.env.AI_PROVIDER ?? "openai").toLowerCase();
