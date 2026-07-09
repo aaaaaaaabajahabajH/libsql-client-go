@@ -2,10 +2,13 @@ import type { NextRequest } from "next/server";
 
 import { AUTH_ROUTES, PROTECTED_ROUTES } from "@/utils/constants";
 
-/**
- * Route classification helpers extracted from middleware.ts so
- * the edge runtime file stays thin and testable in isolation.
- */
+export function getClientIp(request: NextRequest): string {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    request.headers.get("x-real-ip") ??
+    "unknown"
+  );
+}
 
 export function isProtectedRoute(pathname: string): boolean {
   return PROTECTED_ROUTES.some(

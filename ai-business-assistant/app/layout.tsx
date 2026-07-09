@@ -10,9 +10,8 @@ const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",
+  preload: true,
 });
-
-/* ─── Metadata ──────────────────────────────────────────────── */
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
@@ -42,11 +41,13 @@ export const metadata: Metadata = {
     siteName: APP_NAME,
     title: `${APP_NAME} — Grow Faster with AI`,
     description: APP_DESCRIPTION,
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: APP_NAME }],
   },
   twitter: {
     card: "summary_large_image",
     title: `${APP_NAME} — Grow Faster with AI`,
     description: APP_DESCRIPTION,
+    images: ["/og-image.png"],
   },
   robots: {
     index: true,
@@ -70,7 +71,30 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-/* ─── Root Layout ───────────────────────────────────────────── */
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: APP_NAME,
+  url: APP_URL,
+  description: APP_DESCRIPTION,
+  sameAs: [],
+};
+
+const softwareJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: APP_NAME,
+  applicationCategory: "BusinessApplication",
+  description: APP_DESCRIPTION,
+  url: APP_URL,
+  operatingSystem: "Web",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+    description: "Free plan available",
+  },
+};
 
 export default function RootLayout({
   children,
@@ -79,6 +103,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareJsonLd) }}
+        />
+      </head>
       <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"

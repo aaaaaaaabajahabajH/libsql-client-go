@@ -1,20 +1,17 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
+import Link from "next/link";
 
 interface ErrorPageProps {
   error: Error & { digest?: string };
   reset: () => void;
 }
 
-/**
- * Global error boundary for the root segment.
- * Must be a Client Component — React calls reset() on client side.
- */
 export default function GlobalError({ error, reset }: ErrorPageProps) {
   useEffect(() => {
-    // Log to your error monitoring service (e.g. Sentry) in production
-    console.error("Unhandled application error:", error);
+    Sentry.captureException(error);
   }, [error]);
 
   return (
@@ -38,12 +35,12 @@ export default function GlobalError({ error, reset }: ErrorPageProps) {
         >
           Try again
         </button>
-        <a
+        <Link
           href="/"
           className="rounded-md border border-border px-5 py-2.5 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           Go home
-        </a>
+        </Link>
       </div>
     </main>
   );

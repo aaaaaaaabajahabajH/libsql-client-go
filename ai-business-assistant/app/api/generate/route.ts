@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getProvider, buildPrompt } from "@/lib/ai";
 import { saveHistory } from "@/services/history";
+import { rateLimit, RATE_LIMIT_CONFIGS } from "@/lib/rate-limit";
 import { TOOL_CREDIT_COSTS } from "@/utils/constants";
 import type { CreditsRow, DbToolType, Json } from "@/types/database";
 
@@ -32,6 +33,22 @@ function errorResponse(message: string, status: number) {
 }
 
 export async function POST(req: NextRequest) {
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    req.headers.get("x-real-ip") ??
+    "unknown";
+
+  const rl = rateLimit(`ai:${ip}`, RATE_LIMIT_CONFIGS.ai);
+  if (!rl.allowed) {
+    return new Response(JSON.stringify({ error: "Too many requests" }), {
+      status: 429,
+      headers: {
+        "Content-Type": "application/json",
+        "Retry-After": String(rl.retryAfter ?? 60),
+      },
+    });
+  }
+
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
