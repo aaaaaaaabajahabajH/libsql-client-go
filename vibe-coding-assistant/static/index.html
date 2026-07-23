@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>المساعد الذكي متعدد الوظائف</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+<header class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm">
+  <div>
+    <h1 class="text-xl font-bold">المساعد الذكي متعدد الوظائف</h1>
+    <p class="text-sm text-slate-500">Vibe Coding Assistant &mdash; 10 خدمات ذكية في مكان واحد</p>
+  </div>
+</header>
+
+<div class="flex flex-col md:flex-row">
+
+  <!-- Sidebar navigation: one button per feature -->
+  <nav id="tab-nav" class="md:w-64 shrink-0 bg-white border-l border-slate-200 p-3 md:min-h-[calc(100vh-73px)]">
+    <ul class="space-y-1" id="tab-list"></ul>
+  </nav>
+
+  <!-- Main content: one panel per feature, only the active one is visible -->
+  <main class="flex-1 p-6">
+
+    <!-- 1. Improve writing style -->
+    <section id="panel-style" class="tab-panel bg-white rounded-xl shadow-sm p-6 space-y-4">
+      <h2 class="text-lg font-semibold">1. تحسين الأسلوب الكتابي</h2>
+      <textarea id="style-text" rows="6" class="w-full border rounded-lg p-3" placeholder="الصق النص المراد تحسينه هنا..."></textarea>
+      <div>
+        <label class="block text-sm mb-1 text-slate-600">الجمهور المستهدف</label>
+        <select id="style-audience" class="border rounded-lg p-2 w-full md:w-64">
+          <option value="professional">احترافي / رسمي</option>
+          <option value="casual">عام / غير رسمي</option>
+          <option value="academic">أكاديمي</option>
+          <option value="children">أطفال</option>
+        </select>
+      </div>
+      <button data-action="style-submit" class="btn-primary">تحسين النص</button>
+      <div id="style-result" class="result-box"></div>
+    </section>
+
+    <!-- 2. Develop writing voice -->
+    <section id="panel-voice" class="tab-panel bg-white rounded-xl shadow-sm p-6 space-y-4 hidden">
+      <h2 class="text-lg font-semibold">2. تطوير الصوت الكتابي</h2>
+      <p class="text-sm text-slate-500">ارفع عينات نصوص (PDF, DOCX, TXT, PY) و/أو الصقها مباشرة.</p>
+      <input id="voice-files" type="file" multiple accept=".pdf,.docx,.txt,.py" class="block w-full text-sm" />
+      <textarea id="voice-rawtext" rows="4" class="w-full border rounded-lg p-3" placeholder="أو الصق عينة نصية هنا..."></textarea>
+      <button data-action="voice-submit" class="btn-primary">استخراج دليل الأسلوب</button>
+      <div id="voice-result" class="result-box"></div>
+    </section>
+
+    <!-- 3. Brainstorming -->
+    <section id="panel-brainstorm" class="tab-panel bg-white rounded-xl shadow-sm p-6 space-y-4 hidden">
+      <h2 class="text-lg font-semibold">3. العصف الذهني</h2>
+      <input id="brainstorm-topic" type="text" class="w-full border rounded-lg p-3" placeholder="الموضوع..." />
+      <div>
+        <label class="block text-sm mb-1 text-slate-600">عدد الأفكار</label>
+        <input id="brainstorm-count" type="number" min="1" max="20" value="5" class="border rounded-lg p-2 w-32" />
+      </div>
+      <button data-action="brainstorm-submit" class="btn-primary">توليد الأفكار</button>
+      <div id="brainstorm-result" class="result-box"></div>
+    </section>
+
+    <!-- 4. Simplify concepts -->
+    <section id="panel-simplify" class="tab-panel bg-white rounded-xl shadow-sm p-6 space-y-4 hidden">
+      <h2 class="text-lg font-semibold">4. تبسيط المفاهيم</h2>
+      <input id="simplify-term" type="text" class="w-full border rounded-lg p-3" placeholder="المصطلح أو المفهوم..." />
+      <div>
+        <label class="block text-sm mb-1 text-slate-600">المستوى المعرفي</label>
+        <select id="simplify-level" class="border rounded-lg p-2 w-full md:w-64">
+          <option value="beginner">مبتدئ</option>
+          <option value="intermediate">متوسط</option>
+          <option value="expert">خبير</option>
+        </select>
+      </div>
+      <button data-action="simplify-submit" class="btn-primary">اشرح لي</button>
+      <div id="simplify-result" class="result-box"></div>
+    </section>
+
+    <!-- 5. Exam / interview prep -->
+    <section id="panel-exam" class="tab-panel bg-white rounded-xl shadow-sm p-6 space-y-4 hidden">
+      <h2 class="text-lg font-semibold">5. التحضير للاختبارات</h2>
+      <input id="exam-subject" type="text" class="w-full border rounded-lg p-3" placeholder="المادة أو المنصب الوظيفي..." />
+      <button data-action="exam-submit" class="btn-primary">إنشاء خطة الدراسة</button>
+      <div id="exam-result" class="result-box"></div>
+    </section>
+
+    <!-- 6. Explain programming concepts -->
+    <section id="panel-codeexplain" class="tab-panel bg-white rounded-xl shadow-sm p-6 space-y-4 hidden">
+      <h2 class="text-lg font-semibold">6. شرح مفاهيم البرمجة</h2>
+      <input id="codeexplain-concept" type="text" class="w-full border rounded-lg p-3" placeholder="المفهوم البرمجي (مثال: recursion)..." />
+      <input id="codeexplain-language" type="text" class="w-full border rounded-lg p-3" placeholder="لغة البرمجة (مثال: Python)..." />
+      <button data-action="codeexplain-submit" class="btn-primary">اشرح مع كود</button>
+      <div id="codeexplain-result" class="result-box"></div>
+    </section>
+
+    <!-- 7. Code review -->
+    <section id="panel-codereview" class="tab-panel bg-white rounded-xl shadow-sm p-6 space-y-4 hidden">
+      <h2 class="text-lg font-semibold">7. مراجعة الكود</h2>
+      <textarea id="codereview-code" rows="8" class="w-full border rounded-lg p-3 font-mono text-sm" placeholder="الصق كود Python هنا..."></textarea>
+      <p class="text-sm text-slate-500">أو ارفع ملف .py:</p>
+      <input id="codereview-file" type="file" accept=".py" class="block w-full text-sm" />
+      <button data-action="codereview-submit" class="btn-primary">راجع الكود</button>
+      <div id="codereview-result" class="result-box"></div>
+    </section>
+
+    <!-- 8. Case study -->
+    <section id="panel-casestudy" class="tab-panel bg-white rounded-xl shadow-sm p-6 space-y-4 hidden">
+      <h2 class="text-lg font-semibold">8. كتابة دراسة حالة</h2>
+      <textarea id="casestudy-data" rows="8" class="w-full border rounded-lg p-3" placeholder="اذكر البيانات والأحداث الرئيسية للحالة..."></textarea>
+      <button data-action="casestudy-submit" class="btn-primary">إنشاء التقرير</button>
+      <div id="casestudy-result" class="result-box"></div>
+    </section>
+
+    <!-- 9. Funding request -->
+    <section id="panel-funding" class="tab-panel bg-white rounded-xl shadow-sm p-6 space-y-4 hidden">
+      <h2 class="text-lg font-semibold">9. كتابة طلبات التمويل</h2>
+      <textarea id="funding-idea" rows="4" class="w-full border rounded-lg p-3" placeholder="صف فكرة المشروع..."></textarea>
+      <input id="funding-budget" type="text" class="w-full border rounded-lg p-3" placeholder="الميزانية المطلوبة..." />
+      <button data-action="funding-submit" class="btn-primary">إنشاء مسودة الطلب</button>
+      <div id="funding-result" class="result-box"></div>
+    </section>
+
+    <!-- 10. Pair programming chat -->
+    <section id="panel-chat" class="tab-panel bg-white rounded-xl shadow-sm p-6 space-y-4 hidden">
+      <h2 class="text-lg font-semibold">10. البرمجة التشاركية</h2>
+      <div id="chat-window" class="border rounded-lg p-3 h-96 overflow-y-auto bg-slate-50 space-y-3"></div>
+      <div class="flex gap-2">
+        <input id="chat-input" type="text" class="flex-1 border rounded-lg p-3" placeholder="اكتب متطلبات برمجية..." />
+        <button data-action="chat-submit" class="btn-primary">إرسال</button>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Artifact drawer: slides in from the side to show long text / code with a copy button -->
+<div id="artifact-overlay" class="artifact-overlay hidden"></div>
+<aside id="artifact-drawer" class="artifact-drawer">
+  <div class="flex items-center justify-between p-4 border-b">
+    <h3 id="artifact-title" class="font-semibold"></h3>
+    <div class="flex gap-2">
+      <button id="artifact-copy" class="btn-secondary">نسخ</button>
+      <button id="artifact-close" class="btn-secondary">إغلاق</button>
+    </div>
+  </div>
+  <pre id="artifact-content" class="p-4 overflow-auto flex-1 text-sm whitespace-pre-wrap"></pre>
+</aside>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
