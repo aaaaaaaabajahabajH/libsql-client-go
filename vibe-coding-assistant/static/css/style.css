@@ -1,0 +1,115 @@
+/* Small additions Tailwind's CDN build doesn't cover: buttons, the artifact
+   drawer slide-in animation, and the active-tab highlight. */
+
+.btn-primary {
+  background-color: #4f46e5;
+  color: white;
+  padding: 0.6rem 1.25rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.15s ease;
+}
+.btn-primary:hover {
+  background-color: #4338ca;
+}
+
+.btn-secondary {
+  background-color: #e2e8f0;
+  color: #1e293b;
+  padding: 0.4rem 0.9rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+}
+.btn-secondary:hover {
+  background-color: #cbd5e1;
+}
+
+.nav-item {
+  display: block;
+  width: 100%;
+  text-align: right;
+  padding: 0.6rem 0.9rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  color: #475569;
+}
+.nav-item:hover {
+  background-color: #f1f5f9;
+}
+.nav-item.active {
+  background-color: #eef2ff;
+  color: #4338ca;
+  font-weight: 600;
+}
+
+.result-box {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 1rem;
+  margin-top: 0.5rem;
+}
+.result-box:empty {
+  display: none;
+}
+
+table.result-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+table.result-table th,
+table.result-table td {
+  border: 1px solid #e2e8f0;
+  padding: 0.5rem 0.75rem;
+  text-align: right;
+  vertical-align: top;
+}
+table.result-table th {
+  background-color: #f8fafc;
+}
+
+.artifact-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.4);
+  z-index: 40;
+}
+.artifact-overlay.hidden {
+  display: none;
+}
+
+.artifact-drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  max-width: 640px;
+  background: white;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
+}
+.artifact-drawer.open {
+  transform: translateX(0);
+}
+
+.chat-bubble {
+  max-width: 85%;
+  padding: 0.6rem 0.9rem;
+  border-radius: 0.75rem;
+  font-size: 0.9rem;
+  white-space: pre-wrap;
+}
+.chat-bubble.user {
+  background-color: #4f46e5;
+  color: white;
+  margin-inline-start: auto;
+}
+.chat-bubble.assistant {
+  background-color: #e2e8f0;
+  color: #1e293b;
+  margin-inline-end: auto;
+}
