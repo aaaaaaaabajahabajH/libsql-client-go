@@ -61,18 +61,21 @@ MISSING=0
 check_cmd() {
   local cmd="$1"
   local min_version="${2:-}"
+  local flag="${3:---version}"
   if ! command -v "$cmd" >/dev/null 2>&1; then
     err "$cmd not found${min_version:+ (need $min_version+)}"
     MISSING=$((MISSING + 1))
-  else
-    local v
-    v=$("$cmd" --version 2>&1 | head -1)
-    ok "$cmd — $v"
+    return
   fi
+  # Read full version output first to avoid SIGPIPE under `set -o pipefail`
+  local raw v
+  raw=$("$cmd" "$flag" 2>&1 || true)
+  v=$(printf '%s\n' "$raw" | head -n1)
+  ok "$cmd — $v"
 }
-check_cmd go "1.24"
+check_cmd go   "1.24" "version"
 check_cmd node "20"
-check_cmd npm "10"
+check_cmd npm  "10"
 
 if [ $MISSING -gt 0 ]; then
   err "$MISSING required tool(s) missing. Install them and try again."
@@ -164,14 +167,13 @@ ok "Mobile dependencies installed"
 # ── Step 6: Summary + Next Steps ───────────────────────────────────────────
 step "6/6 · Ready 🎉"
 
-cat <<EOF
-
+printf "
   ${GREEN}${BOLD}Setup complete!${RESET}
 
   ${BOLD}Start the stack:${RESET}
 
     ${CYAN}# Terminal 1 · Backend (port 8080)${RESET}
-    cd backend && DATABASE_URL="file:$DB_PATH" go run .
+    cd backend && DATABASE_URL=\"file:%s\" go run .
 
     ${CYAN}# Terminal 2 · Frontend (port 5173)${RESET}
     cd frontend && npm run dev
@@ -194,4 +196,4 @@ cat <<EOF
 
   ${DIM}Ghyari · ${RESET}${BLUE}https://ghyari.sa${RESET}
 
-EOF
+" "$DB_PATH"

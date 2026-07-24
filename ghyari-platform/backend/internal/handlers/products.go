@@ -988,27 +988,43 @@ func NewDistributorHandler(db *sql.DB) *DistributorHandler { return &Distributor
 
 func (h *DistributorHandler) List(c *gin.Context) {
 	city := c.Query("city")
-	country := c.DefaultQuery("country", "SA")
-	args := []interface{}{country}
-	where := "WHERE country = ?"
+	region := c.Query("region")
+	args := []interface{}{}
+	where := "WHERE is_active = 1"
+	if region != "" {
+		where += " AND region = ?"
+		args = append(args, region)
+	}
 	if city != "" {
 		where += " AND city = ?"
 		args = append(args, city)
 	}
 	rows, err := h.db.QueryContext(c.Request.Context(),
-		fmt.Sprintf("SELECT id, name_ar, name_en, city, country, rating, is_verified FROM distributors %s ORDER BY is_verified DESC, rating DESC", where), args...)
+		fmt.Sprintf(`SELECT id, name_ar, name_en, city, region,
+			COALESCE(phone,''), COALESCE(address,''),
+			COALESCE(logo_url,''), is_verified, rating
+			FROM distributors %s ORDER BY is_verified DESC, rating DESC`, where), args...)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error", "details": err.Error()})
 		return
 	}
 	defer rows.Close()
-	var dists []models.Distributor
+	dists := []gin.H{}
 	for rows.Next() {
-		var d models.Distributor
-		rows.Scan(&d.ID, &d.NameAR, &d.NameEN, &d.City, &d.Region, &d.Rating, &d.IsVerified)
-		dists = append(dists, d)
+		var id, nameAr, nameEn, city, region, phone, address, logoURL string
+		var isVerified int
+		var rating float64
+		if err := rows.Scan(&id, &nameAr, &nameEn, &city, &region, &phone, &address, &logoURL, &isVerified, &rating); err != nil {
+			continue
+		}
+		dists = append(dists, gin.H{
+			"id": id, "name_ar": nameAr, "name_en": nameEn,
+			"city": city, "region": region,
+			"phone": phone, "address": address, "logo_url": logoURL,
+			"is_verified": isVerified == 1, "rating": rating,
+		})
 	}
-	c.JSON(http.StatusOK, gin.H{"data": dists})
+	c.JSON(http.StatusOK, gin.H{"distributors": dists})
 }
 
 func (h *DistributorHandler) GetByID(c *gin.Context) {
