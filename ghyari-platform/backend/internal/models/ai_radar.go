@@ -151,7 +151,7 @@ type AnalyzeResponse struct {
 
 // SubmitRequestPayload is the JSON body for POST /ai/requests
 type SubmitRequestPayload struct {
-	QueryRaw    string `json:"query" binding:"required,min=2,max=500"`
+	QueryRaw    string `json:"query_raw" binding:"required,min=2,max=500"`
 	CarModelID  string `json:"car_model_id,omitempty"`
 	CarModelRaw string `json:"car_model_raw,omitempty"`
 	SignalType  string `json:"signal_type,omitempty"` // Defaults to "search_not_found"

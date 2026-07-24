@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/ghyari/api/internal/models"
 )
@@ -222,35 +224,29 @@ func (h *ProductHandler) Compatible(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "24"))
 	offset := (page - 1) * limit
 
-	args := []interface{}{carBrand, "%" + carModel + "%"}
+	// Compatibility is stored two ways in the schema:
+	//   1. product_compatibility → car_models (structured, may be empty for older seeds)
+	//   2. products.car_brand + products.compatibility JSON (used by current seed)
+	// We match either.
+	modelLike := "%" + carModel + "%"
+	args := []interface{}{carBrand, modelLike, modelLike, modelLike}
 	whereExtra := ""
 
-	if yearStr != "" {
-		year, err := strconv.Atoi(yearStr)
-		if err == nil {
-			whereExtra += " AND (comp.year_from <= ? AND (comp.year_to = 0 OR comp.year_to >= ?))"
-			args = append(args, year, year)
-		}
-	}
-
 	if category != "" {
-		whereExtra += " AND p.category = ?"
+		whereExtra += " AND p.category_id = ?"
 		args = append(args, category)
 	}
-
 	args = append(args, limit, offset)
 
 	query := fmt.Sprintf(`
-		SELECT DISTINCT p.*
+		SELECT DISTINCT `+productColumnsP+`
 		FROM products p
-		JOIN (
-			SELECT DISTINCT product_id
-			FROM product_compatibility pc
-			JOIN car_models cm ON cm.id = pc.car_model_id
-			WHERE LOWER(cm.brand) = LOWER(?)
-			  AND LOWER(cm.model) LIKE LOWER(?%s)
-		) comp ON comp.product_id = p.id
+		LEFT JOIN product_compatibility pc ON pc.product_id = p.id
+		LEFT JOIN car_models cm ON cm.id = pc.car_model_id
 		WHERE p.is_active = 1
+		  AND LOWER(p.car_brand) = LOWER(?)
+		  AND (p.compatibility LIKE ? OR cm.name_ar LIKE ? OR cm.name_en LIKE ?)
+		  %s
 		ORDER BY p.is_featured DESC, p.sold_count DESC
 		LIMIT ? OFFSET ?
 	`, whereExtra)
@@ -311,7 +307,7 @@ func (h *ProductHandler) ListPerformanceParts(c *gin.Context) {
 	args = append(args, limit, offset)
 
 	query := fmt.Sprintf(`
-		SELECT * FROM products
+		SELECT `+productColumns+` FROM products
 		WHERE is_active = 1
 		  AND (is_performance = 1 OR is_tuning = 1)
 		  %s
@@ -339,7 +335,7 @@ func (h *ProductHandler) ListPerformanceParts(c *gin.Context) {
 // GET /api/v1/products/featured
 func (h *ProductHandler) ListFeatured(c *gin.Context) {
 	rows, err := h.db.QueryContext(c.Request.Context(), `
-		SELECT * FROM products
+		SELECT `+productColumns+` FROM products
 		WHERE is_active = 1 AND is_featured = 1
 		ORDER BY sold_count DESC
 		LIMIT 12
@@ -552,9 +548,66 @@ func (h *ProductHandler) BulkImport(c *gin.Context) {
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
-func (h *ProductHandler) fetchProductByID(ctx interface{ Deadline() (time.Time, bool) }, id string) (*models.Product, error) {
-	// Use context.Context properly via http.Request.Context()
-	return nil, sql.ErrNoRows // placeholder — implement with actual scan
+func (h *ProductHandler) fetchProductByID(ctx context.Context, id string) (*models.Product, error) {
+	row := h.db.QueryRowContext(ctx,
+		"SELECT "+productColumns+" FROM products WHERE id = ? AND is_active = 1", id)
+
+	p := &models.Product{}
+	var imagesJSON, compatJSON, tagsJSON, keywordsJSON string
+	err := row.Scan(
+		&p.ID, &p.NameAR, &p.NameEN, &p.DescriptionAR, &p.DescriptionEN,
+		&p.SKU, &p.Barcode, &p.Category, &p.SubCategory,
+		&p.Brand, &p.CarBrand,
+		&p.Price, &p.SalePrice, &p.Currency, &p.Stock, &p.LowStockAlert,
+		&imagesJSON, &p.Model3DURL,
+		&p.IsPerformance, &p.IsTuning, &p.IsOEM,
+		&p.DistributorID, &p.Weight, &p.Dimensions,
+		&tagsJSON, &keywordsJSON, &compatJSON,
+		&p.Rating, &p.ReviewCount, &p.SoldCount, &p.ViewCount,
+		&p.IsActive, &p.IsFeatured, &p.CreatedAt, &p.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	json.Unmarshal([]byte(imagesJSON), &p.Images)
+	json.Unmarshal([]byte(compatJSON), &p.Compatibility)
+	json.Unmarshal([]byte(tagsJSON), &p.Tags)
+	json.Unmarshal([]byte(keywordsJSON), &p.SearchKeywordsAR)
+	return p, nil
+}
+
+// FetchProductByBarcode finds a product by barcode (mobile scanner).
+func (h *ProductHandler) FetchProductByBarcode(c *gin.Context) {
+	barcode := c.Param("barcode")
+	row := h.db.QueryRowContext(c.Request.Context(),
+		"SELECT "+productColumns+" FROM products WHERE barcode = ? AND is_active = 1", barcode)
+	p := &models.Product{}
+	var imagesJSON, compatJSON, tagsJSON, keywordsJSON string
+	err := row.Scan(
+		&p.ID, &p.NameAR, &p.NameEN, &p.DescriptionAR, &p.DescriptionEN,
+		&p.SKU, &p.Barcode, &p.Category, &p.SubCategory,
+		&p.Brand, &p.CarBrand,
+		&p.Price, &p.SalePrice, &p.Currency, &p.Stock, &p.LowStockAlert,
+		&imagesJSON, &p.Model3DURL,
+		&p.IsPerformance, &p.IsTuning, &p.IsOEM,
+		&p.DistributorID, &p.Weight, &p.Dimensions,
+		&tagsJSON, &keywordsJSON, &compatJSON,
+		&p.Rating, &p.ReviewCount, &p.SoldCount, &p.ViewCount,
+		&p.IsActive, &p.IsFeatured, &p.CreatedAt, &p.UpdatedAt,
+	)
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusOK, gin.H{"data": nil})
+		return
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error", "message": err.Error()})
+		return
+	}
+	json.Unmarshal([]byte(imagesJSON), &p.Images)
+	json.Unmarshal([]byte(compatJSON), &p.Compatibility)
+	json.Unmarshal([]byte(tagsJSON), &p.Tags)
+	json.Unmarshal([]byte(keywordsJSON), &p.SearchKeywordsAR)
+	c.JSON(http.StatusOK, gin.H{"data": p})
 }
 
 const productColumns = `id, name_ar, name_en,
@@ -701,7 +754,30 @@ func (h *CategoryHandler) List(c *gin.Context) {
 }
 
 func (h *CategoryHandler) GetByID(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"data": nil})
+	idOrSlug := c.Param("id")
+	var (
+		id, nameAr, nameEn, slug, iconURL string
+		parentID                          sql.NullString
+		sortOrder                         int
+	)
+	err := h.db.QueryRowContext(c.Request.Context(),
+		`SELECT id, name_ar, name_en, parent_id, slug, COALESCE(icon_url,''), sort_order
+		 FROM categories WHERE (id = ? OR slug = ?) AND is_active = 1`,
+		idOrSlug, idOrSlug).
+		Scan(&id, &nameAr, &nameEn, &parentID, &slug, &iconURL, &sortOrder)
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusNotFound, gin.H{"error": "category_not_found"})
+		return
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error", "message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{
+		"id": id, "name_ar": nameAr, "name_en": nameEn,
+		"parent_id": parentID.String, "slug": slug,
+		"icon_url": iconURL, "sort_order": sortOrder,
+	}})
 }
 
 func (h *CategoryHandler) GetProducts(c *gin.Context) {
@@ -816,15 +892,40 @@ func (h *OrderHandler) ClearCart(c *gin.Context) {
 
 func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	userID, _ := c.Get("user_id")
+	// Accept both legacy (shipping_address / payment_method) and mobile
+	// (shipping_address_ar / notes_ar) payload shapes. Payment defaults to COD.
 	var req struct {
-		ShippingAddress string `json:"shipping_address" binding:"required"`
-		PaymentMethod   string `json:"payment_method" binding:"required"`
-		Notes           string `json:"notes"`
+		ShippingAddress   string `json:"shipping_address"`
+		ShippingAddressAR string `json:"shipping_address_ar"`
+		PaymentMethod     string `json:"payment_method"`
+		Notes             string `json:"notes"`
+		NotesAR           string `json:"notes_ar"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_payload"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_payload", "details": err.Error()})
 		return
 	}
+	address := req.ShippingAddress
+	if address == "" {
+		address = req.ShippingAddressAR
+	}
+	if address == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "missing_address",
+			"message": "عنوان التوصيل مطلوب / shipping address is required",
+		})
+		return
+	}
+	notes := req.Notes
+	if notes == "" {
+		notes = req.NotesAR
+	}
+	if req.PaymentMethod == "" {
+		req.PaymentMethod = "cod"
+	}
+	// Rewire the local names so the rest of the handler uses them without changes.
+	req.ShippingAddress = address
+	req.Notes = notes
 	// Calculate totals from cart
 	var subtotal float64
 	rows, err := h.db.QueryContext(c.Request.Context(), `
@@ -890,38 +991,55 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 
 func (h *OrderHandler) ListUserOrders(c *gin.Context) {
 	userID, _ := c.Get("user_id")
-	rows, _ := h.db.QueryContext(c.Request.Context(),
-		"SELECT id, status, total_amount, created_at FROM orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 20", userID)
+	rows, err := h.db.QueryContext(c.Request.Context(),
+		`SELECT id, COALESCE(order_number,''), status, total, currency, created_at
+		 FROM orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 50`, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error", "message": err.Error()})
+		return
+	}
 	defer rows.Close()
 	type OrderSummary struct {
-		ID          string    `json:"id"`
-		Status      string    `json:"status"`
-		TotalAmount float64   `json:"total_amount"`
-		CreatedAt   time.Time `json:"created_at"`
+		ID          string  `json:"id"`
+		OrderNumber string  `json:"order_number"`
+		Status      string  `json:"status"`
+		Total       float64 `json:"total"`
+		Currency    string  `json:"currency"`
+		CreatedAt   string  `json:"created_at"`
 	}
-	var orders []OrderSummary
+	orders := []OrderSummary{}
 	for rows.Next() {
 		var o OrderSummary
-		rows.Scan(&o.ID, &o.Status, &o.TotalAmount, &o.CreatedAt)
+		if err := rows.Scan(&o.ID, &o.OrderNumber, &o.Status, &o.Total, &o.Currency, &o.CreatedAt); err != nil {
+			continue
+		}
 		orders = append(orders, o)
 	}
-	c.JSON(http.StatusOK, gin.H{"data": orders})
+	c.JSON(http.StatusOK, gin.H{"orders": orders})
 }
 
 func (h *OrderHandler) GetOrder(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	orderID := c.Param("id")
 	row := h.db.QueryRowContext(c.Request.Context(),
-		"SELECT id, status, total_amount, shipping_address, created_at FROM orders WHERE id = ? AND user_id = ?",
+		`SELECT id, COALESCE(order_number,''), status, subtotal, shipping, total,
+		 currency, COALESCE(shipping_address,''), COALESCE(notes_ar,''), created_at
+		 FROM orders WHERE id = ? AND user_id = ?`,
 		orderID, userID)
 	var o struct {
-		ID              string    `json:"id"`
-		Status          string    `json:"status"`
-		TotalAmount     float64   `json:"total_amount"`
-		ShippingAddress string    `json:"shipping_address"`
-		CreatedAt       time.Time `json:"created_at"`
+		ID              string  `json:"id"`
+		OrderNumber     string  `json:"order_number"`
+		Status          string  `json:"status"`
+		Subtotal        float64 `json:"subtotal"`
+		Shipping        float64 `json:"shipping"`
+		Total           float64 `json:"total"`
+		Currency        string  `json:"currency"`
+		ShippingAddress string  `json:"shipping_address"`
+		NotesAR         string  `json:"notes_ar"`
+		CreatedAt       string  `json:"created_at"`
 	}
-	if err := row.Scan(&o.ID, &o.Status, &o.TotalAmount, &o.ShippingAddress, &o.CreatedAt); err != nil {
+	if err := row.Scan(&o.ID, &o.OrderNumber, &o.Status, &o.Subtotal, &o.Shipping,
+		&o.Total, &o.Currency, &o.ShippingAddress, &o.NotesAR, &o.CreatedAt); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "order_not_found"})
 		return
 	}
@@ -1122,32 +1240,61 @@ type AuthHandler struct{ db *sql.DB }
 func NewAuthHandler(db *sql.DB) *AuthHandler { return &AuthHandler{db: db} }
 
 func (h *AuthHandler) Register(c *gin.Context) {
+	// Accept both {name, phone?} (mobile app) and {name_ar, phone} (legacy web).
 	var req struct {
 		Email    string `json:"email" binding:"required,email"`
-		Phone    string `json:"phone" binding:"required"`
 		Password string `json:"password" binding:"required,min=8"`
-		NameAR   string `json:"name_ar" binding:"required"`
+		Name     string `json:"name"`
+		NameAR   string `json:"name_ar"`
+		Phone    string `json:"phone"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_payload", "details": err.Error()})
 		return
 	}
+	name := req.Name
+	if name == "" {
+		name = req.NameAR
+	}
+	if name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing_name", "message": "name (or name_ar) is required"})
+		return
+	}
+
 	var exists int
-	h.db.QueryRowContext(c.Request.Context(), "SELECT COUNT(*) FROM users WHERE email = ?", req.Email).Scan(&exists)
+	h.db.QueryRowContext(c.Request.Context(),
+		"SELECT COUNT(*) FROM users WHERE email = ?", req.Email).Scan(&exists)
 	if exists > 0 {
 		c.JSON(http.StatusConflict, gin.H{"error": "email_exists", "message": "البريد الإلكتروني مسجل مسبقاً"})
 		return
 	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "hash_error"})
+		return
+	}
+
 	id := uuid.New().String()
 	now := time.Now().UTC().Format(time.RFC3339)
-	_, err := h.db.ExecContext(c.Request.Context(),
+	_, err = h.db.ExecContext(c.Request.Context(),
 		"INSERT INTO users (id, email, phone, name, password_hash, role, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'customer', 1, ?, ?)",
-		id, req.Email, req.Phone, req.NameAR, "[hashed:"+req.Password+"]", now, now)
+		id, req.Email, req.Phone, name, string(hash), now, now)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "register_failed", "message": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"message": "تم التسجيل بنجاح", "user_id": id})
+
+	// Auto-login: issue JWT so the mobile app can use the new account immediately.
+	token, err := issueJWT(id, req.Email, "customer")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "token_error"})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{
+		"user":  gin.H{"id": id, "email": req.Email, "name": name, "role": "customer"},
+		"token": token,
+	})
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
@@ -1160,17 +1307,23 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// Fetch user from DB
-	var userID, role, nameAR string
+	var userID, role, name, passwordHash string
 	err := h.db.QueryRowContext(c.Request.Context(),
-		"SELECT id, role, name FROM users WHERE email = ? AND is_active = 1", req.Email).
-		Scan(&userID, &role, &nameAR)
+		"SELECT id, role, name, password_hash FROM users WHERE email = ? AND is_active = 1",
+		req.Email).
+		Scan(&userID, &role, &name, &passwordHash)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_credentials", "message": "البريد أو كلمة المرور غير صحيحة"})
 		return
 	}
 
-	// Issue real JWT
+	// Verify password. Historic seed users may have unhashed placeholders — treat
+	// any bcrypt-looking hash as required; other formats reject unless bootstrap.
+	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(req.Password)); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_credentials", "message": "البريد أو كلمة المرور غير صحيحة"})
+		return
+	}
+
 	token, err := issueJWT(userID, req.Email, role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "token_error"})
@@ -1178,10 +1331,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"access_token": token,
-		"token_type":   "Bearer",
-		"expires_in":   86400,
-		"user": gin.H{"id": userID, "email": req.Email, "name_ar": nameAR, "role": role},
+		"user":  gin.H{"id": userID, "email": req.Email, "name": name, "role": role},
+		"token": token,
 	})
 }
 
@@ -1195,16 +1346,22 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 
 func (h *AuthHandler) Me(c *gin.Context) {
 	userID, _ := c.Get("user_id")
-	var user struct {
-		ID     string `json:"id"`
-		Email  string `json:"email"`
-		NameAR string `json:"name_ar"`
-		Role   string `json:"role"`
+	var id, email, name, role string
+	var phone sql.NullString
+	err := h.db.QueryRowContext(c.Request.Context(),
+		"SELECT id, email, COALESCE(name,''), COALESCE(phone,''), role FROM users WHERE id = ?", userID).
+		Scan(&id, &email, &name, &phone, &role)
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusNotFound, gin.H{"error": "user_not_found"})
+		return
 	}
-	h.db.QueryRowContext(c.Request.Context(),
-		"SELECT id, email, name_ar, role FROM users WHERE id = ?", userID).
-		Scan(&user.ID, &user.Email, &user.NameAR, &user.Role)
-	c.JSON(http.StatusOK, gin.H{"data": user})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error", "message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{
+		"id": id, "email": email, "name": name, "phone": phone.String, "role": role,
+	}})
 }
 
 func (h *AuthHandler) UpdateProfile(c *gin.Context) {

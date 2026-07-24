@@ -140,7 +140,12 @@ func main() {
 		products.GET("/compatible", productHandler.Compatible)
 		products.GET("/performance", productHandler.ListPerformanceParts)
 		products.GET("/featured", productHandler.ListFeatured)
+		products.GET("/barcode/:barcode", productHandler.FetchProductByBarcode)
 	}
+
+	// Public AI Radar signal capture (write-only, no auth) —
+	// mobile searches with zero results fire-and-forget these
+	v1.POST("/ai/requests", aiRadarHandler.SubmitRequest)
 
 	// Car brands and models
 	cars := v1.Group("/cars")
@@ -194,10 +199,9 @@ func main() {
 			orders.POST("/:id/cancel", orderHandler.CancelOrder)
 		}
 
-		// AI Radar (public signal capture, private analytics)
+		// AI Radar (private analytics — /ai/requests is public above)
 		ai := protected.Group("/ai")
 		{
-			ai.POST("/requests", aiRadarHandler.SubmitRequest)
 			ai.GET("/recommendations/:userId", aiRadarHandler.GetPersonalizedRecommendations)
 		}
 	}
