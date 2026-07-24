@@ -177,6 +177,7 @@ See [`mobile/APP_STORE_GUIDE.md`](mobile/APP_STORE_GUIDE.md) for the full checkl
 | Document | Description |
 |----------|-------------|
 | [`docs/QUICKSTART.md`](docs/QUICKSTART.md) | 5-minute local setup with hot-reload |
+| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Production runbook: secrets, deploy, monitor, rollback |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System design & data flow |
 | [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) | REST API endpoints with curl examples |
 | [`docs/DATABASE_SCHEMA.sql`](docs/DATABASE_SCHEMA.sql) | Full DB schema (14 tables) |
@@ -207,12 +208,24 @@ k6 run --vus 50 --duration 2m scripts/k6/load_test.js
 
 ## 🚢 Deployment
 
+```bash
+make secrets          # generate JWT_SECRET, SESSION_SECRET, etc. → stdout
+make prod-build       # release binary, -s -w, no CGO
+make prod-check       # refuses to succeed if env is unsafe
+make prod-run         # start the release binary
+```
+
 Production stack:
 
 - **API**: Docker → any container platform (Fly.io, Railway, Cloud Run)
 - **Frontend**: Static build → CDN (Cloudflare Pages, Vercel)
 - **DB**: Turso managed edge database
 - **Monitoring**: Prometheus scrape → Grafana Cloud
+
+The API **refuses to start** in `GIN_MODE=release` if `JWT_SECRET` is unset,
+matches the dev default, is shorter than 32 chars, or `DATABASE_URL` points
+at `/tmp` — intentional fail-fast, not a bug. Full runbook:
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 See [`infrastructure/`](infrastructure/) for Dockerfiles and Nginx configs.
 

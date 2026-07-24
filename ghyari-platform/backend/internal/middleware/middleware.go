@@ -11,6 +11,25 @@ import (
 	"github.com/google/uuid"
 )
 
+// SecurityHeaders adds OWASP-recommended response headers.
+// HSTS is only sent in release mode so local http:// dev doesn't get pinned.
+func SecurityHeaders() gin.HandlerFunc {
+	prod := os.Getenv("GIN_MODE") == "release"
+	return func(c *gin.Context) {
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("X-Frame-Options", "DENY")
+		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
+		c.Header("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+		// API responses are JSON — a strict CSP is fine and defends against
+		// accidental HTML rendering in a browser.
+		c.Header("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
+		if prod {
+			c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+		}
+		c.Next()
+	}
+}
+
 // Logger returns a structured logging middleware
 func Logger() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -153,9 +172,26 @@ func RateLimit(requestsPerMinute int) gin.HandlerFunc {
 	}
 }
 
+// devJWTSecret is the well-known fallback used only outside release mode.
+// Keep this string identical to handlers.devJWTSecret so signer and verifier
+// agree on a value both refuse in production.
+const devJWTSecret = "ghyari-dev-secret-change-in-production-minimum-32-chars"
+
 func getJWTSecret() []byte {
-	secret := getEnv("JWT_SECRET", "ghyari-dev-secret-change-in-production-minimum-32-chars")
-	return []byte(secret)
+	s := os.Getenv("JWT_SECRET")
+	prod := os.Getenv("GIN_MODE") == "release"
+	if s == "" || s == devJWTSecret {
+		if prod {
+			// Fail closed — do not verify tokens with a public dev secret in prod.
+			panic("JWT_SECRET must be set to a strong random value in production " +
+				"(see scripts/generate-secrets.sh). Refusing to verify tokens.")
+		}
+		return []byte(devJWTSecret)
+	}
+	if len(s) < 32 && prod {
+		panic("JWT_SECRET must be at least 32 characters in production")
+	}
+	return []byte(s)
 }
 
 func getEnv(key, fallback string) string {

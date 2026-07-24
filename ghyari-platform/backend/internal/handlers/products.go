@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -1223,8 +1224,31 @@ func (h *DistributorHandler) Verify(c *gin.Context) {
 }
 
 // AuthHandler handles authentication
+const devJWTSecret = "ghyari-dev-secret-change-in-production-minimum-32-chars"
+
+// jwtSecret returns the signing key.
+// In release mode (GIN_MODE=release) it PANICS if JWT_SECRET is unset or matches
+// the well-known dev default — a production process must never sign with a
+// public secret. In debug mode it falls back to the dev secret with a warning.
+func jwtSecret() []byte {
+	s := os.Getenv("JWT_SECRET")
+	prod := os.Getenv("GIN_MODE") == "release"
+	if s == "" || s == devJWTSecret {
+		if prod {
+			panic("JWT_SECRET must be set to a strong random value in production " +
+				"(see scripts/generate-secrets.sh). Refusing to sign tokens with the dev default.")
+		}
+		return []byte(devJWTSecret)
+	}
+	if len(s) < 32 {
+		if prod {
+			panic("JWT_SECRET must be at least 32 characters in production")
+		}
+	}
+	return []byte(s)
+}
+
 func issueJWT(userID, email, role string) (string, error) {
-	secret := []byte(getEnvFallback("JWT_SECRET", "ghyari-dev-secret-change-in-production-minimum-32-chars"))
 	claims := jwt.MapClaims{
 		"user_id": userID,
 		"email":   email,
@@ -1233,7 +1257,7 @@ func issueJWT(userID, email, role string) (string, error) {
 		"iat":     time.Now().Unix(),
 	}
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return t.SignedString(secret)
+	return t.SignedString(jwtSecret())
 }
 
 type AuthHandler struct{ db *sql.DB }

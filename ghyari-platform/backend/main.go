@@ -38,6 +38,11 @@ func main() {
 		gin.SetMode(gin.DebugMode)
 	}
 
+	// Fail fast: refuse to start in release mode with an unsafe JWT_SECRET or
+	// a local /tmp DB path. Better to crash the deploy than to serve traffic
+	// with a public dev secret or an ephemeral SQLite file.
+	assertProductionSafety(dbURL)
+
 	// ── Database ─────────────────────────────────────────────────────────────
 	connStr := dbURL
 	if dbToken != "" {
@@ -75,6 +80,7 @@ func main() {
 	// ── Router ────────────────────────────────────────────────────────────────
 	router := gin.New()
 	router.Use(gin.Recovery())
+	router.Use(middleware.SecurityHeaders())
 	router.Use(middleware.Logger())
 	router.Use(middleware.Metrics())
 
@@ -291,4 +297,35 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// assertProductionSafety refuses to start when GIN_MODE=release and any
+// production invariant is broken. Called once from main() BEFORE the router
+// or DB is initialised — a failed check should crash the deploy pipeline,
+// not surface as a runtime panic on the first authenticated request.
+func assertProductionSafety(dbURL string) {
+	if os.Getenv("GIN_MODE") != "release" {
+		return
+	}
+
+	const devSecret = "ghyari-dev-secret-change-in-production-minimum-32-chars"
+	jwt := os.Getenv("JWT_SECRET")
+
+	fatal := func(reason string) {
+		log.Fatalf("[FATAL] refusing to start in release mode: %s\n"+
+			"  → generate secrets with `./scripts/generate-secrets.sh`\n"+
+			"  → see docs/DEPLOYMENT.md for the full checklist", reason)
+	}
+
+	switch {
+	case jwt == "":
+		fatal("JWT_SECRET is unset")
+	case jwt == devSecret:
+		fatal("JWT_SECRET is the well-known dev default")
+	case len(jwt) < 32:
+		fatal(fmt.Sprintf("JWT_SECRET is too short (%d chars, need ≥ 32)", len(jwt)))
+	case dbURL == "" || (len(dbURL) >= 10 && dbURL[:10] == "file:/tmp/"):
+		fatal("DATABASE_URL points at /tmp — use a managed DB (Turso, etc.)")
+	}
+	log.Println("[startup] production safety checks passed")
 }
