@@ -135,8 +135,8 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 		}
 
 		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-			"error":   "insufficient_role",
-			"message": "غير مصرح لك بهذه العملية / Insufficient permissions",
+			"error":    "insufficient_role",
+			"message":  "غير مصرح لك بهذه العملية / Insufficient permissions",
 			"required": roles,
 		})
 	}

@@ -23,7 +23,10 @@ func Seed(ctx context.Context, db *sql.DB) error {
 	defer tx.Rollback()
 
 	// ── Car Brands ────────────────────────────────────────────────────────────
-	brands := []struct{ id, ar, en string; popular int }{
+	brands := []struct {
+		id, ar, en string
+		popular    int
+	}{
 		{"nissan", "نيسان", "Nissan", 1},
 		{"toyota", "تويوتا", "Toyota", 1},
 		{"lexus", "لكزس", "Lexus", 1},
@@ -70,7 +73,9 @@ func Seed(ctx context.Context, db *sql.DB) error {
 	}
 	for _, m := range models {
 		yearTo := interface{}(nil)
-		if m.to != 0 { yearTo = m.to }
+		if m.to != 0 {
+			yearTo = m.to
+		}
 		tx.ExecContext(ctx,
 			`INSERT OR IGNORE INTO car_models (id,brand_id,name_ar,name_en,body_type,year_from,year_to,is_popular)
 			 VALUES (?,?,?,?,?,?,?,?)`,
@@ -107,7 +112,9 @@ func Seed(ctx context.Context, db *sql.DB) error {
 	}
 	for _, c := range categories {
 		parent := interface{}(nil)
-		if c.parent != "" { parent = c.parent }
+		if c.parent != "" {
+			parent = c.parent
+		}
 		tx.ExecContext(ctx,
 			`INSERT OR IGNORE INTO categories (id,parent_id,name_ar,name_en,slug,sort_order,is_active)
 			 VALUES (?,?,?,?,?,?,1)`,
@@ -155,10 +162,10 @@ func Seed(ctx context.Context, db *sql.DB) error {
 	// ── Sample Products ───────────────────────────────────────────────────────
 	products := []struct {
 		id, nameAR, nameEN, sku, brand, carBrand, catID string
-		price                                            float64
-		isTuning, isPerformance, isFeatured              int
-		distID                                           string
-		images                                           string
+		price                                           float64
+		isTuning, isPerformance, isFeatured             int
+		distID                                          string
+		images                                          string
 	}{
 		{
 			"prod_brembo_patrol", "بريكات بريمبو - نيسان باترول Y62",

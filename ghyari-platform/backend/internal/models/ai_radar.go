@@ -6,12 +6,12 @@ import "time"
 type SignalType string
 
 const (
-	SignalTypeSearchNotFound  SignalType = "search_not_found"   // User searched, got 0 results
-	SignalTypeSearchAbandoned SignalType = "search_abandoned"   // User searched, didn't click results
-	SignalTypeChatRequest     SignalType = "chat_request"       // User explicitly requested via chat
-	SignalTypeWishlistMissing SignalType = "wishlist_missing"   // User tried to wishlist but product missing
-	SignalTypeWhatsApp        SignalType = "whatsapp"           // Request via WhatsApp business
-	SignalTypeCompatCheck     SignalType = "compat_check"       // Compatibility check with no matching product
+	SignalTypeSearchNotFound  SignalType = "search_not_found" // User searched, got 0 results
+	SignalTypeSearchAbandoned SignalType = "search_abandoned" // User searched, didn't click results
+	SignalTypeChatRequest     SignalType = "chat_request"     // User explicitly requested via chat
+	SignalTypeWishlistMissing SignalType = "wishlist_missing" // User tried to wishlist but product missing
+	SignalTypeWhatsApp        SignalType = "whatsapp"         // Request via WhatsApp business
+	SignalTypeCompatCheck     SignalType = "compat_check"     // Compatibility check with no matching product
 )
 
 // Urgency levels for demand signals
@@ -67,7 +67,7 @@ type DemandSignal struct {
 	// AI-generated analysis
 	AIAnalysis      string `json:"ai_analysis" db:"ai_analysis"`           // Full Claude analysis text
 	SuggestedAction string `json:"suggested_action" db:"suggested_action"` // Short action item
-	SupplierHints   string `json:"supplier_hints" db:"supplier_hints"`      // JSON: suggested suppliers
+	SupplierHints   string `json:"supplier_hints" db:"supplier_hints"`     // JSON: suggested suppliers
 
 	// Status tracking
 	Status      string     `json:"status" db:"status"` // new | reviewed | sourcing | listed | dismissed
@@ -85,25 +85,25 @@ type DemandSignal struct {
 // AutoPullJob represents a sourcing task generated from a DemandSignal
 // The AI creates these to assign sourcing work to the team
 type AutoPullJob struct {
-	ID             string    `json:"id" db:"id"`
-	DemandSignalID string    `json:"demand_signal_id" db:"demand_signal_id"` // FK
-	Priority       int       `json:"priority" db:"priority"`                 // 1-10 (10 = highest)
-	Status         string    `json:"status" db:"status"`                     // pending | in_progress | completed | cancelled
+	ID             string `json:"id" db:"id"`
+	DemandSignalID string `json:"demand_signal_id" db:"demand_signal_id"` // FK
+	Priority       int    `json:"priority" db:"priority"`                 // 1-10 (10 = highest)
+	Status         string `json:"status" db:"status"`                     // pending | in_progress | completed | cancelled
 
 	// What to source
 	ProductNameAR    string  `json:"product_name_ar" db:"product_name_ar"`
 	ProductNameEN    string  `json:"product_name_en" db:"product_name_en"`
 	Category         string  `json:"category" db:"category"`
-	TargetBrands     string  `json:"target_brands" db:"target_brands"`     // JSON array
+	TargetBrands     string  `json:"target_brands" db:"target_brands"` // JSON array
 	TargetPriceSAR   float64 `json:"target_price_sar" db:"target_price_sar"`
 	SupplierContacts string  `json:"supplier_contacts" db:"supplier_contacts"` // JSON array
 
 	// Assignment
-	AssignedTo   string     `json:"assigned_to" db:"assigned_to"` // user_id
-	AssignedAt   *time.Time `json:"assigned_at,omitempty" db:"assigned_at"`
-	DeadlineAt   *time.Time `json:"deadline_at,omitempty" db:"deadline_at"`
-	CompletedAt  *time.Time `json:"completed_at,omitempty" db:"completed_at"`
-	ResultSKU    string     `json:"result_sku" db:"result_sku"` // SKU added if completed
+	AssignedTo  string     `json:"assigned_to" db:"assigned_to"` // user_id
+	AssignedAt  *time.Time `json:"assigned_at,omitempty" db:"assigned_at"`
+	DeadlineAt  *time.Time `json:"deadline_at,omitempty" db:"deadline_at"`
+	CompletedAt *time.Time `json:"completed_at,omitempty" db:"completed_at"`
+	ResultSKU   string     `json:"result_sku" db:"result_sku"` // SKU added if completed
 
 	// Notification
 	NotifyUsers string `json:"notify_users" db:"notify_users"` // JSON array of user_ids to notify on completion
@@ -120,7 +120,7 @@ type AIRecommendation struct {
 	ID         string    `json:"id" db:"id"`
 	UserID     string    `json:"user_id" db:"user_id"`
 	ProductID  string    `json:"product_id" db:"product_id"`
-	Score      float64   `json:"score" db:"score"` // 0.0 - 1.0
+	Score      float64   `json:"score" db:"score"`   // 0.0 - 1.0
 	Reason     string    `json:"reason" db:"reason"` // Why this was recommended
 	ReasonAR   string    `json:"reason_ar" db:"reason_ar"`
 	AlgorithmV string    `json:"algorithm_version" db:"algorithm_version"`

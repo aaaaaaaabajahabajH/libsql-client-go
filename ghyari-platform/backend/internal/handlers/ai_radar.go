@@ -188,18 +188,18 @@ func (h *AIRadarHandler) GetInventorySuggestions(c *gin.Context) {
 	defer rows.Close()
 
 	type Suggestion struct {
-		ID            string       `json:"id"`
-		ProductNameAR string       `json:"product_name_ar"`
-		ProductNameEN string       `json:"product_name_en"`
-		Category      string       `json:"category"`
-		TargetPrice   float64      `json:"target_price_sar"`
-		Priority      int          `json:"priority"`
-		Status        string       `json:"status"`
-		AIBriefing    string       `json:"ai_briefing"`
-		CreatedAt     time.Time    `json:"created_at"`
-		RequestCount  int          `json:"request_count_7d"`
+		ID            string              `json:"id"`
+		ProductNameAR string              `json:"product_name_ar"`
+		ProductNameEN string              `json:"product_name_en"`
+		Category      string              `json:"category"`
+		TargetPrice   float64             `json:"target_price_sar"`
+		Priority      int                 `json:"priority"`
+		Status        string              `json:"status"`
+		AIBriefing    string              `json:"ai_briefing"`
+		CreatedAt     time.Time           `json:"created_at"`
+		RequestCount  int                 `json:"request_count_7d"`
 		Urgency       models.UrgencyLevel `json:"urgency"`
-		Confidence    float64      `json:"confidence"`
+		Confidence    float64             `json:"confidence"`
 	}
 
 	var suggestions []Suggestion

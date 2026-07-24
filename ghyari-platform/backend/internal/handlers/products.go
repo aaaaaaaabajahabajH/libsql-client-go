@@ -31,7 +31,8 @@ func NewProductHandler(db *sql.DB) *ProductHandler {
 // List godoc
 // GET /api/v1/products
 // Query params: category, car_brand, car_model, year_from, year_to, min_price, max_price,
-//               is_tuning, in_stock, sort_by, page, limit
+//
+//	is_tuning, in_stock, sort_by, page, limit
 func (h *ProductHandler) List(c *gin.Context) {
 	filter := &models.ProductFilter{
 		Page:  1,
