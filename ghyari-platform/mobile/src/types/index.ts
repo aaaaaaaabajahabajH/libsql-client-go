@@ -97,6 +97,10 @@ export type RootStackParamList = {
   ProductDetail: { productId: string; productName: string };
   Checkout: undefined;
   OrderSuccess: { orderId: string };
+  BarcodeScanner: undefined;
+  Distributors: undefined;
+  Wishlist: undefined;
+  PaymentMethods: undefined;
 };
 
 export type TabParamList = {
@@ -106,3 +110,16 @@ export type TabParamList = {
   Orders: undefined;
   Profile: undefined;
 };
+
+export interface Distributor {
+  id: string;
+  name_ar: string;
+  name_en?: string;
+  city: string;
+  region: string;
+  phone?: string;
+  address?: string;
+  is_verified: boolean;
+  rating: number;
+  logo_url?: string;
+}

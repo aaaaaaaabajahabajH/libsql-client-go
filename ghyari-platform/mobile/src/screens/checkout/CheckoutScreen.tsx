@@ -166,12 +166,34 @@ export default function CheckoutScreen() {
           </View>
         </View>
 
-        {/* Payment note */}
-        <View style={styles.paymentNote}>
-          <Text style={[styles.paymentNoteText, { textAlign: isAr ? "right" : "left" }]}>
-            💳 {isAr ? "الدفع عند الاستلام · آمن ومضمون" : "Cash on Delivery · Safe & Guaranteed"}
-          </Text>
-        </View>
+        {/* Payment method */}
+        <TouchableOpacity
+          style={styles.paymentCard}
+          onPress={() => navigation.navigate("PaymentMethods")}
+          activeOpacity={0.8}
+        >
+          <View style={[styles.paymentRow, { flexDirection: isAr ? "row-reverse" : "row" }]}>
+            <Text style={styles.paymentEmoji}>
+              {useStore.getState().paymentMethod === "cod" ? "💵"
+                : useStore.getState().paymentMethod === "mada" ? "💳"
+                : useStore.getState().paymentMethod === "stc_pay" ? "📱"
+                : ""}
+            </Text>
+            <View style={[styles.paymentText, { alignItems: isAr ? "flex-end" : "flex-start" }]}>
+              <Text style={styles.paymentLabel}>
+                {isAr ? "طريقة الدفع" : "Payment Method"}
+              </Text>
+              <Text style={styles.paymentValue}>
+                {useStore.getState().paymentMethod === "cod"
+                  ? isAr ? "الدفع عند الاستلام" : "Cash on Delivery"
+                  : useStore.getState().paymentMethod === "mada" ? "مدى / Mada"
+                  : useStore.getState().paymentMethod === "stc_pay" ? "STC Pay"
+                  : "Apple Pay"}
+              </Text>
+            </View>
+            <Text style={styles.paymentChevron}>{isAr ? "‹" : "›"}</Text>
+          </View>
+        </TouchableOpacity>
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -330,17 +352,33 @@ const styles = StyleSheet.create({
     color: colors.orange[500],
     fontFamily: typography.fonts.arabicBlack,
   },
-  paymentNote: {
-    backgroundColor: "rgba(0,255,136,0.06)",
-    borderRadius: radius.md,
+  paymentCard: {
+    backgroundColor: colors.bg.secondary,
+    borderRadius: radius.xl,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: "rgba(0,255,136,0.2)",
+    borderColor: colors.border.active,
   },
-  paymentNoteText: {
-    fontSize: typography.sizes.sm,
-    color: colors.success,
+  paymentRow: {
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  paymentEmoji: { fontSize: 28 },
+  paymentText: { flex: 1 },
+  paymentLabel: {
+    fontSize: typography.sizes.xs,
+    color: colors.text.muted,
     fontFamily: typography.fonts.arabic,
+    marginBottom: 2,
+  },
+  paymentValue: {
+    fontSize: typography.sizes.md,
+    color: colors.text.primary,
+    fontFamily: typography.fonts.arabicBold,
+  },
+  paymentChevron: {
+    color: colors.text.muted,
+    fontSize: 22,
   },
   bottomBar: {
     position: "absolute",

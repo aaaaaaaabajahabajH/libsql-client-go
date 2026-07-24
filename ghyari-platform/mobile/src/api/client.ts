@@ -1,5 +1,5 @@
 import * as SecureStore from "expo-secure-store";
-import { Product, ProductsResponse, Category, CarBrand, CarModel } from "../types";
+import { Product, ProductsResponse, Category, CarBrand, CarModel, Distributor } from "../types";
 
 const BASE_URL = "https://api.ghyari.sa/api/v1";
 const TOKEN_KEY = "ghyari_token";
@@ -152,6 +152,18 @@ export const createOrder = (data: {
 
 export const getOrders = () =>
   request<{ orders: Array<{ id: string; status: string; total: number; created_at: string; currency: string }> }>("/orders");
+
+// ── Distributors ────────────────────────────────────────────────────────────
+
+export const fetchDistributors = () =>
+  request<{ distributors: Distributor[] }>("/distributors").then((r) => r.distributors);
+
+// ── Barcode lookup ──────────────────────────────────────────────────────────
+
+export const lookupBarcode = (barcode: string) =>
+  request<{ data: Product | null }>(`/products/barcode/${encodeURIComponent(barcode)}`)
+    .then((r) => r.data)
+    .catch(() => null);
 
 // ── AI Radar ────────────────────────────────────────────────────────────────
 

@@ -23,8 +23,15 @@ interface Props {
 
 export default function ProductCard({ product, onPress }: Props) {
   const addToCart = useStore((s) => s.addToCart);
+  const toggleWishlist = useStore((s) => s.toggleWishlist);
+  const inWishlist = useStore((s) => s.wishlistIds.has(product.id));
   const language = useStore((s) => s.language);
   const isAr = language === "ar";
+
+  const handleHeart = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    toggleWishlist(product);
+  };
 
   const name = isAr ? product.name_ar : product.name_en;
   const hasDiscount = product.sale_price != null && product.sale_price < product.price;
@@ -89,6 +96,17 @@ export default function ProductCard({ product, onPress }: Props) {
             <Text style={styles.oemText}>OEM</Text>
           </View>
         )}
+
+        {/* Wishlist heart */}
+        <TouchableOpacity
+          style={styles.heartBtn}
+          onPress={handleHeart}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={[styles.heartIcon, inWishlist && styles.heartActive]}>
+            {inWishlist ? "❤" : "♡"}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Info */}
@@ -232,6 +250,25 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontFamily: typography.fonts.arabicBold,
     letterSpacing: 0.5,
+  },
+  heartBtn: {
+    position: "absolute",
+    bottom: 8,
+    right: 7,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heartIcon: {
+    color: "rgba(255,255,255,0.75)",
+    fontSize: 18,
+    lineHeight: 20,
+  },
+  heartActive: {
+    color: colors.error,
   },
   info: {
     padding: spacing.sm,

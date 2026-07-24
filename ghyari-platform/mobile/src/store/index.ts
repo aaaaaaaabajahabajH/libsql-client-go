@@ -33,6 +33,17 @@ interface AppStore {
   // ── Language ──────────────────────────────────────────────────────────
   language: "ar" | "en";
   setLanguage: (lang: "ar" | "en") => void;
+
+  // ── Wishlist ──────────────────────────────────────────────────────────
+  wishlist: Product[];
+  wishlistIds: Set<string>;
+  toggleWishlist: (product: Product) => void;
+  isInWishlist: (productId: string) => boolean;
+  clearWishlist: () => void;
+
+  // ── Payment method ────────────────────────────────────────────────────
+  paymentMethod: "cod" | "mada" | "stc_pay" | "apple_pay";
+  setPaymentMethod: (m: "cod" | "mada" | "stc_pay" | "apple_pay") => void;
 }
 
 function calcTotal(items: CartItem[]): number {
@@ -105,4 +116,26 @@ export const useStore = create<AppStore>((set, get) => ({
   // ── Language ──────────────────────────────────────────────────────────
   language: "ar",
   setLanguage: (lang) => set({ language: lang }),
+
+  // ── Wishlist ──────────────────────────────────────────────────────────
+  wishlist: [],
+  wishlistIds: new Set<string>(),
+  toggleWishlist: (product) => {
+    const ids = new Set(get().wishlistIds);
+    let list = [...get().wishlist];
+    if (ids.has(product.id)) {
+      ids.delete(product.id);
+      list = list.filter((p) => p.id !== product.id);
+    } else {
+      ids.add(product.id);
+      list = [product, ...list];
+    }
+    set({ wishlist: list, wishlistIds: ids });
+  },
+  isInWishlist: (productId) => get().wishlistIds.has(productId),
+  clearWishlist: () => set({ wishlist: [], wishlistIds: new Set() }),
+
+  // ── Payment method ────────────────────────────────────────────────────
+  paymentMethod: "cod",
+  setPaymentMethod: (m) => set({ paymentMethod: m }),
 }));

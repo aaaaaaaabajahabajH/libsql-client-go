@@ -138,17 +138,20 @@ export default function HomeScreen() {
                 {isAr ? "قطع السيارات الأصلية والتزويد" : "Genuine Auto Parts & Performance"}
               </Text>
             </View>
-            <TouchableOpacity
-              style={styles.cartHeaderBtn}
-              onPress={() => navigation.navigate("Main")}
-            >
-              <Text style={styles.cartIcon}>🛒</Text>
-              {cartCount > 0 && (
-                <Animated.View style={[styles.cartBadge, pulseStyle]}>
-                  <Text style={styles.cartBadgeText}>{cartCount > 9 ? "9+" : cartCount}</Text>
-                </Animated.View>
-              )}
-            </TouchableOpacity>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <TouchableOpacity
+                style={styles.cartHeaderBtn}
+                onPress={() => navigation.navigate("BarcodeScanner")}
+              >
+                <Text style={styles.cartIcon}>📷</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.cartHeaderBtn}
+                onPress={() => navigation.navigate("Wishlist")}
+              >
+                <Text style={styles.cartIcon}>❤</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </Animated.View>
 
@@ -312,6 +315,35 @@ export default function HomeScreen() {
             </LinearGradient>
           </Animated.View>
         )}
+
+        {/* ── Distributors CTA ── */}
+        <Animated.View entering={FadeInDown.delay(430).duration(500)}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.radarBannerWrapper}
+            onPress={() => navigation.navigate("Distributors")}
+          >
+            <LinearGradient
+              colors={["#001233", "#003A99"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.radarBanner}
+            >
+              <Text style={styles.radarEmoji}>🚚</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.radarTitle, { textAlign: isAr ? "right" : "left" }]}>
+                  {isAr ? "الموزعون المعتمدون" : "Authorized Distributors"}
+                </Text>
+                <Text style={[styles.radarSub, { textAlign: isAr ? "right" : "left" }]}>
+                  {isAr
+                    ? "شبكة من الموزعين في السعودية والإمارات · اتصل مباشرة"
+                    : "Network across KSA & UAE · Call directly"}
+                </Text>
+              </View>
+              <Text style={styles.radarArrow}>{isAr ? "‹" : "›"}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
 
         {/* ── AI Radar Banner ── */}
         <Animated.View entering={FadeInDown.delay(450).duration(500)}>

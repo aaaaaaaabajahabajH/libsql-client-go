@@ -17,6 +17,10 @@ import AuthScreen from "../screens/auth/AuthScreen";
 import ProductDetailScreen from "../screens/product/ProductDetailScreen";
 import CheckoutScreen from "../screens/checkout/CheckoutScreen";
 import OrderSuccessScreen from "../screens/orders/OrderSuccessScreen";
+import WishlistScreen from "../screens/wishlist/WishlistScreen";
+import BarcodeScannerScreen from "../screens/scanner/BarcodeScannerScreen";
+import PaymentMethodsScreen from "../screens/payment/PaymentMethodsScreen";
+import DistributorsScreen from "../screens/distributors/DistributorsScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -191,6 +195,14 @@ export default function AppNavigator() {
             gestureEnabled: false,
           }}
         />
+        <Stack.Screen name="Wishlist" component={WishlistScreen} />
+        <Stack.Screen
+          name="BarcodeScanner"
+          component={BarcodeScannerScreen}
+          options={{ animation: "slide_from_bottom", gestureEnabled: true }}
+        />
+        <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
+        <Stack.Screen name="Distributors" component={DistributorsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
