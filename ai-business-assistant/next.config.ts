@@ -24,6 +24,7 @@ const cspDirectives = [
     "https://js.stripe.com",
     "https://m.stripe.network",
     "https://www.googletagmanager.com",
+    "https://va.vercel-scripts.com",
   ]
     .filter(Boolean)
     .join(" "),
@@ -49,6 +50,7 @@ const cspDirectives = [
     "https://www.googletagmanager.com",
     "https://us.i.posthog.com",
     "https://us-assets.i.posthog.com",
+    "https://va.vercel-scripts.com",
     isDev ? "ws://localhost:*" : "",
   ]
     .filter(Boolean)
