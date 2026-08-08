@@ -106,40 +106,20 @@ for role in \
 done
 ok "Deploy Service Account: ${DEPLOY_SA_EMAIL}"
 
-# ── Workload Identity Federation (GitHub Actions) ─────────────────────────────
-info "إعداد Workload Identity Federation لـ GitHub Actions..."
-POOL_NAME="ghyari-github-pool"
-PROVIDER_NAME="ghyari-github-provider"
-GITHUB_REPO="${GITHUB_REPO:-aaaaaaaabajahabajH/libsql-client-go}"
+# ── Deploy Service Account key (GitHub Actions) ───────────────────────────────
+# deploy-gcloud.yml authenticates with google-github-actions/auth@v2 via a
+# service-account JSON key (credentials_json), not Workload Identity
+# Federation, so it's this key — not a WIF pool/provider — that needs to
+# reach GitHub as the GCP_CREDENTIALS_JSON secret.
+info "إنشاء مفتاح JSON لحساب النشر (Service Account Key)..."
+KEY_FILE="./ghyari-deploy-key.json"
 
-gcloud iam workload-identity-pools create "$POOL_NAME" \
+gcloud iam service-accounts keys create "$KEY_FILE" \
   --project="$PROJECT" \
-  --location=global \
-  --display-name="GitHub Actions Pool" 2>/dev/null || warn "Pool موجود"
+  --iam-account="$DEPLOY_SA_EMAIL"
 
-POOL_ID=$(gcloud iam workload-identity-pools describe "$POOL_NAME" \
-  --project="$PROJECT" --location=global --format='value(name)')
-
-gcloud iam workload-identity-pools providers create-oidc "$PROVIDER_NAME" \
-  --project="$PROJECT" \
-  --location=global \
-  --workload-identity-pool="$POOL_NAME" \
-  --display-name="GitHub OIDC" \
-  --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.actor=assertion.actor" \
-  --issuer-uri="https://token.actions.githubusercontent.com" 2>/dev/null || warn "Provider موجود"
-
-# ربط الـ GitHub repo بالـ Service Account
-gcloud iam service-accounts add-iam-policy-binding "$DEPLOY_SA_EMAIL" \
-  --project="$PROJECT" \
-  --role=roles/iam.workloadIdentityUser \
-  --member="principalSet://iam.googleapis.com/${POOL_ID}/attribute.repository/${GITHUB_REPO}" \
-  --quiet 2>/dev/null || true
-
-PROVIDER_FULL_ID=$(gcloud iam workload-identity-pools providers describe "$PROVIDER_NAME" \
-  --project="$PROJECT" --location=global --workload-identity-pool="$POOL_NAME" \
-  --format='value(name)')
-
-ok "Workload Identity Federation جاهز"
+ok "تم إنشاء المفتاح: ${KEY_FILE}"
+warn "هذا المفتاح دائم الصلاحية — لا تضفه إلى git، واحذفه محلياً بعد رفعه إلى GitHub Secrets"
 
 # ── Secret Manager ────────────────────────────────────────────────────────────
 info "إنشاء الأسرار في Secret Manager..."
@@ -176,9 +156,12 @@ echo "      openssl rand -hex 32 | gcloud secrets versions add ghyari-jwt-secret
 echo "      echo 'sk-ant-...'   | gcloud secrets versions add ghyari-anthropic-api-key --data-file=-"
 echo "      echo 'redis://...'  | gcloud secrets versions add ghyari-redis-url --data-file=-"
 echo ""
-echo "  2️⃣  أضف هذا السر إلى GitHub Actions:"
-echo "      الاسم:  GCP_WORKLOAD_IDENTITY_PROVIDER"
-echo "      القيمة: ${PROVIDER_FULL_ID}"
+echo "  2️⃣  أضف هذا السر إلى GitHub Actions (Settings → Secrets and variables → Actions):"
+echo "      الاسم:  GCP_CREDENTIALS_JSON"
+echo "      القيمة: محتوى الملف ${KEY_FILE} كاملاً (انسخه بأمر: cat ${KEY_FILE})"
 echo ""
-echo "  3️⃣  ادفع للـ main لتُطلق أول نشر تلقائي"
+echo "  3️⃣  احذف المفتاح المحلي بعد رفعه إلى GitHub Secrets:"
+echo "      rm ${KEY_FILE}"
+echo ""
+echo "  4️⃣  ادفع للـ main لتُطلق أول نشر تلقائي"
 echo ""
