@@ -8,7 +8,6 @@ import (
 )
 
 func u64ptr(v uint64) *uint64 { return &v }
-func strptr(s string) *string { return &s }
 
 func makeExecuteResponse(t *testing.T, repIdx *uint64) hrana.StreamResult {
 	t.Helper()
