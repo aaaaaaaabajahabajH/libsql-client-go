@@ -1,0 +1,28 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Backend API (go run .)",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/backend",
+      "cwd": "${workspaceFolder}/backend",
+      "env": {
+        "PORT": "8080",
+        "GIN_MODE": "debug"
+      }
+    },
+    {
+      "name": "AI Radar Worker (go run .)",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/ai-engine",
+      "cwd": "${workspaceFolder}/ai-engine",
+      "env": {
+        "SCAN_INTERVAL": "300"
+      }
+    }
+  ]
+}
