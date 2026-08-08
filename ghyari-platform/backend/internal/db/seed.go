@@ -9,7 +9,9 @@ import (
 // Seed inserts initial reference data if the database is empty
 func Seed(ctx context.Context, db *sql.DB) error {
 	var count int
-	db.QueryRowContext(ctx, `SELECT COUNT(*) FROM car_brands`).Scan(&count)
+	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM car_brands`).Scan(&count); err != nil {
+		return err
+	}
 	if count > 0 {
 		return nil // already seeded
 	}
@@ -20,10 +22,13 @@ func Seed(ctx context.Context, db *sql.DB) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	// ── Car Brands ────────────────────────────────────────────────────────────
-	brands := []struct{ id, ar, en string; popular int }{
+	brands := []struct {
+		id, ar, en string
+		popular    int
+	}{
 		{"nissan", "نيسان", "Nissan", 1},
 		{"toyota", "تويوتا", "Toyota", 1},
 		{"lexus", "لكزس", "Lexus", 1},
@@ -36,9 +41,11 @@ func Seed(ctx context.Context, db *sql.DB) error {
 		{"mitsubishi", "ميتسوبيشي", "Mitsubishi", 0},
 	}
 	for i, b := range brands {
-		tx.ExecContext(ctx,
+		if _, err := tx.ExecContext(ctx,
 			`INSERT OR IGNORE INTO car_brands (id,name_ar,name_en,is_popular,sort_order) VALUES (?,?,?,?,?)`,
-			b.id, b.ar, b.en, b.popular, i+1)
+			b.id, b.ar, b.en, b.popular, i+1); err != nil {
+			return err
+		}
 	}
 
 	// ── Car Models ────────────────────────────────────────────────────────────
@@ -70,11 +77,15 @@ func Seed(ctx context.Context, db *sql.DB) error {
 	}
 	for _, m := range models {
 		yearTo := interface{}(nil)
-		if m.to != 0 { yearTo = m.to }
-		tx.ExecContext(ctx,
+		if m.to != 0 {
+			yearTo = m.to
+		}
+		if _, err := tx.ExecContext(ctx,
 			`INSERT OR IGNORE INTO car_models (id,brand_id,name_ar,name_en,body_type,year_from,year_to,is_popular)
 			 VALUES (?,?,?,?,?,?,?,?)`,
-			m.id, m.brandID, m.ar, m.en, m.body, m.from, yearTo, m.popular)
+			m.id, m.brandID, m.ar, m.en, m.body, m.from, yearTo, m.popular); err != nil {
+			return err
+		}
 	}
 
 	// ── Categories ────────────────────────────────────────────────────────────
@@ -107,11 +118,15 @@ func Seed(ctx context.Context, db *sql.DB) error {
 	}
 	for _, c := range categories {
 		parent := interface{}(nil)
-		if c.parent != "" { parent = c.parent }
-		tx.ExecContext(ctx,
+		if c.parent != "" {
+			parent = c.parent
+		}
+		if _, err := tx.ExecContext(ctx,
 			`INSERT OR IGNORE INTO categories (id,parent_id,name_ar,name_en,slug,sort_order,is_active)
 			 VALUES (?,?,?,?,?,?,1)`,
-			c.id, parent, c.ar, c.en, c.slug, c.order)
+			c.id, parent, c.ar, c.en, c.slug, c.order); err != nil {
+			return err
+		}
 	}
 
 	// ── Distributors ──────────────────────────────────────────────────────────
@@ -145,20 +160,22 @@ func Seed(ctx context.Context, db *sql.DB) error {
 		},
 	}
 	for _, d := range distributors {
-		tx.ExecContext(ctx,
+		if _, err := tx.ExecContext(ctx,
 			`INSERT OR IGNORE INTO distributors
 			 (id,name_ar,name_en,city,region,phone,whatsapp,specialties,is_verified,is_active,rating)
 			 VALUES (?,?,?,?,?,?,?,?,1,1,4.8)`,
-			d.id, d.ar, d.en, d.city, d.region, d.phone, d.whatsapp, d.specialties)
+			d.id, d.ar, d.en, d.city, d.region, d.phone, d.whatsapp, d.specialties); err != nil {
+			return err
+		}
 	}
 
 	// ── Sample Products ───────────────────────────────────────────────────────
 	products := []struct {
 		id, nameAR, nameEN, sku, brand, carBrand, catID string
-		price                                            float64
-		isTuning, isPerformance, isFeatured              int
-		distID                                           string
-		images                                           string
+		price                                           float64
+		isTuning, isPerformance, isFeatured             int
+		distID                                          string
+		images                                          string
 	}{
 		{
 			"prod_brembo_patrol", "بريكات بريمبو - نيسان باترول Y62",
@@ -232,7 +249,7 @@ func Seed(ctx context.Context, db *sql.DB) error {
 		},
 	}
 	for _, p := range products {
-		tx.ExecContext(ctx,
+		if _, err := tx.ExecContext(ctx,
 			`INSERT OR IGNORE INTO products
 			 (id,name_ar,name_en,sku,brand,car_brand,category_id,price,currency,
 			  is_tuning,is_performance,is_featured,distributor_id,images,
@@ -241,7 +258,9 @@ func Seed(ctx context.Context, db *sql.DB) error {
 			p.id, p.nameAR, p.nameEN, p.sku, p.brand, p.carBrand, p.catID,
 			p.price, p.isTuning, p.isPerformance, p.isFeatured,
 			p.distID, p.images, 10+p.isFeatured*20,
-		)
+		); err != nil {
+			return err
+		}
 	}
 
 	// ── Product Compatibility ─────────────────────────────────────────────────
@@ -259,9 +278,11 @@ func Seed(ctx context.Context, db *sql.DB) error {
 		{"prod_defi_gauges", "nissan_350z"},
 	}
 	for _, c := range compat {
-		tx.ExecContext(ctx,
+		if _, err := tx.ExecContext(ctx,
 			`INSERT OR IGNORE INTO product_compatibility (product_id,car_model_id) VALUES (?,?)`,
-			c.prodID, c.modelID)
+			c.prodID, c.modelID); err != nil {
+			return err
+		}
 	}
 
 	if err := tx.Commit(); err != nil {

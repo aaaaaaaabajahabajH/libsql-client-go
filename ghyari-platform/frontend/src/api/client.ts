@@ -105,11 +105,11 @@ export const fetchCompatibleProducts = (params: Record<string, string>) =>
   api.get<{ data: Product[] }>("/products/compatible", { params }).then((r) => r.data);
 
 export const fetchPerformanceParts = (carBrand?: string) =>
-  api.get<{ products: Product[] }>("/products/performance", { params: carBrand ? { car_brand: carBrand } : {} }).then((r) => r.data);
+  api.get<{ data: Product[] }>("/products/performance", { params: carBrand ? { car_brand: carBrand } : {} }).then((r) => r.data.data);
 
 // Categories
 export const fetchCategories = () =>
-  api.get<{ categories: Category[] }>("/categories").then((r) => r.data.categories);
+  api.get<{ data: Category[] }>("/categories").then((r) => r.data.data ?? []);
 
 // Cars
 export const fetchCarBrands = () =>
@@ -120,7 +120,7 @@ export const fetchCarModels = (brandId: string) =>
 
 // Distributors
 export const fetchDistributors = () =>
-  api.get<{ distributors: Distributor[] }>("/distributors").then((r) => r.data.distributors);
+  api.get<{ data: Distributor[] }>("/distributors").then((r) => r.data.data);
 
 // AI Radar
 export const submitDemandRequest = (payload: { query_raw: string; car_model_raw?: string; signal_type?: string }) =>

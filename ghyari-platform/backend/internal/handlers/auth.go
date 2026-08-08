@@ -19,9 +19,9 @@ type AuthHandler struct{ db *sql.DB }
 func NewAuthHandler(db *sql.DB) *AuthHandler { return &AuthHandler{db: db} }
 
 type registerRequest struct {
-	Name  string `json:"name"  binding:"required,min=2,max=100"`
-	Phone string `json:"phone" binding:"required"`
-	Email string `json:"email"`
+	Name     string `json:"name"  binding:"required,min=2,max=100"`
+	Phone    string `json:"phone" binding:"required"`
+	Email    string `json:"email"`
 	Password string `json:"password" binding:"required,min=8"`
 }
 

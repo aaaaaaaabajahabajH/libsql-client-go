@@ -34,7 +34,7 @@ func Logger() gin.HandlerFunc {
 			level = "WARN"
 		}
 
-		gin.DefaultWriter.Write([]byte(
+		_, _ = gin.DefaultWriter.Write([]byte(
 			time.Now().Format(time.RFC3339) + " " + level +
 				" method=" + c.Request.Method +
 				" path=" + c.Request.URL.Path +

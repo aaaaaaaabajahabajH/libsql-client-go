@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -48,7 +48,7 @@ export default function CatalogPage() {
     if (isTuning) params.is_tuning = "true";
     if (sortBy !== "popular") params.sort_by = sortBy;
     setSearchParams(params, { replace: true });
-  }, [searchQuery, carFilter, selectedCategory, isTuning, sortBy]);
+  }, [searchQuery, carFilter, selectedCategory, isTuning, sortBy, setSearchParams]);
 
   // Categories
   const { data: categories = [] } = useQuery({
@@ -83,17 +83,19 @@ export default function CatalogPage() {
       searchProducts(searchQuery, carFilter.car_brand ? { car_brand: carFilter.car_brand } : {}),
     enabled: isSearchMode,
     staleTime: 60 * 1000,
-    onSuccess: (data) => {
-      // Zero results → log to AI Radar
-      if (data.count === 0 && searchQuery) {
-        submitDemandRequest({
-          query_raw: searchQuery,
-          car_model_raw: carFilter.car_model,
-          signal_type: "search_not_found",
-        });
-      }
-    },
   });
+
+  // useQuery's onSuccess callback was removed in TanStack Query v5, so the
+  // zero-results-logs-a-demand-signal side effect runs from an effect instead.
+  useEffect(() => {
+    if (isSearchMode && searchQuery && searchData?.count === 0) {
+      submitDemandRequest({
+        query_raw: searchQuery,
+        car_model_raw: carFilter.car_model,
+        signal_type: "search_not_found",
+      });
+    }
+  }, [searchData, isSearchMode, searchQuery, carFilter.car_model]);
 
   const products: Product[] = isSearchMode
     ? (searchData?.data ?? [])

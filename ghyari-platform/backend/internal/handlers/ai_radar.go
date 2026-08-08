@@ -86,7 +86,7 @@ func (h *AIRadarHandler) SubmitRequest(c *gin.Context) {
 	`,
 		req.ID, req.UserID, req.SessionID, req.QueryRaw, string(req.SignalType),
 		req.CarModelID, req.CarModelRaw, req.IPAddress, req.Country, req.City,
-		req.IsFulfilled, req.CreatedAt,
+		req.IsFulfilled, formatSQLTime(req.CreatedAt),
 	)
 	if err != nil {
 		log.Printf("⚠️  Failed to save customer request: %v", err)
@@ -142,19 +142,21 @@ func (h *AIRadarHandler) GetDemandSignals(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error", "message": err.Error()})
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var signals []models.DemandSignal
 	for rows.Next() {
 		var s models.DemandSignal
+		var createdAt dbTime
 		err := rows.Scan(
 			&s.ID, &s.ProductNameAR, &s.ProductNameEN, &s.Category, &s.CarBrand, &s.CarModel,
 			&s.RequestCount7d, &s.RequestCount30d, &s.UniqueUsers, &s.Urgency, &s.Confidence,
-			&s.AIAnalysis, &s.SuggestedAction, &s.Status, &s.CreatedAt,
+			&s.AIAnalysis, &s.SuggestedAction, &s.Status, &createdAt,
 		)
 		if err != nil {
 			continue
 		}
+		s.CreatedAt = createdAt.Time()
 		signals = append(signals, s)
 	}
 
@@ -185,31 +187,35 @@ func (h *AIRadarHandler) GetInventorySuggestions(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error"})
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	type Suggestion struct {
-		ID            string       `json:"id"`
-		ProductNameAR string       `json:"product_name_ar"`
-		ProductNameEN string       `json:"product_name_en"`
-		Category      string       `json:"category"`
-		TargetPrice   float64      `json:"target_price_sar"`
-		Priority      int          `json:"priority"`
-		Status        string       `json:"status"`
-		AIBriefing    string       `json:"ai_briefing"`
-		CreatedAt     time.Time    `json:"created_at"`
-		RequestCount  int          `json:"request_count_7d"`
+		ID            string              `json:"id"`
+		ProductNameAR string              `json:"product_name_ar"`
+		ProductNameEN string              `json:"product_name_en"`
+		Category      string              `json:"category"`
+		TargetPrice   float64             `json:"target_price_sar"`
+		Priority      int                 `json:"priority"`
+		Status        string              `json:"status"`
+		AIBriefing    string              `json:"ai_briefing"`
+		CreatedAt     time.Time           `json:"created_at"`
+		RequestCount  int                 `json:"request_count_7d"`
 		Urgency       models.UrgencyLevel `json:"urgency"`
-		Confidence    float64      `json:"confidence"`
+		Confidence    float64             `json:"confidence"`
 	}
 
 	var suggestions []Suggestion
 	for rows.Next() {
 		var s Suggestion
-		rows.Scan(
+		var createdAt dbTime
+		if err := rows.Scan(
 			&s.ID, &s.ProductNameAR, &s.ProductNameEN, &s.Category,
 			&s.TargetPrice, &s.Priority, &s.Status, &s.AIBriefing,
-			&s.CreatedAt, &s.RequestCount, &s.Urgency, &s.Confidence,
-		)
+			&createdAt, &s.RequestCount, &s.Urgency, &s.Confidence,
+		); err != nil {
+			continue
+		}
+		s.CreatedAt = createdAt.Time()
 		suggestions = append(suggestions, s)
 	}
 
@@ -258,12 +264,16 @@ func (h *AIRadarHandler) TriggerAnalysis(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error", "message": err.Error()})
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var requests []models.CustomerRequest
 	for rows.Next() {
 		var r models.CustomerRequest
-		rows.Scan(&r.ID, &r.UserID, &r.SessionID, &r.QueryRaw, &r.CarModelRaw, &r.CreatedAt)
+		var createdAt dbTime
+		if err := rows.Scan(&r.ID, &r.UserID, &r.SessionID, &r.QueryRaw, &r.CarModelRaw, &createdAt); err != nil {
+			continue
+		}
+		r.CreatedAt = createdAt.Time()
 		requests = append(requests, r)
 	}
 
@@ -309,7 +319,8 @@ func (h *AIRadarHandler) TriggerAnalysis(c *gin.Context) {
 			signals[i].Category, signals[i].CarBrand, signals[i].CarModel,
 			signals[i].RequestCount7d, string(signals[i].Urgency), signals[i].Confidence,
 			signals[i].AIAnalysis, signals[i].SuggestedAction,
-			time.Now(), time.Now(), time.Now(), time.Now(),
+			formatSQLTime(signals[i].CreatedAt), formatSQLTime(signals[i].UpdatedAt),
+			formatSQLTime(signals[i].FirstSeenAt), formatSQLTime(signals[i].LastSeenAt),
 		)
 		if err != nil {
 			log.Printf("Failed to save demand signal: %v", err)
@@ -337,7 +348,8 @@ func (h *AIRadarHandler) TriggerAnalysis(c *gin.Context) {
 			`,
 				jobID, signals[i].ID, priority,
 				signals[i].ProductNameAR, signals[i].ProductNameEN, signals[i].Category,
-				signals[i].EstimatedPrice, deadline, briefing, time.Now(), time.Now(),
+				signals[i].EstimatedPrice, formatSQLTime(deadline), briefing,
+				formatSQLTime(time.Now()), formatSQLTime(time.Now()),
 			)
 			if err == nil {
 				jobsCreated++
@@ -386,7 +398,7 @@ func (h *AIRadarHandler) GetTrending(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error"})
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	type TrendItem struct {
 		Query       string    `json:"query"`
@@ -399,7 +411,11 @@ func (h *AIRadarHandler) GetTrending(c *gin.Context) {
 	var trends []TrendItem
 	for rows.Next() {
 		var t TrendItem
-		rows.Scan(&t.Query, &t.CarModel, &t.SearchCount, &t.UniqueUsers, &t.LastSeen)
+		var lastSeen dbTime
+		if err := rows.Scan(&t.Query, &t.CarModel, &t.SearchCount, &t.UniqueUsers, &lastSeen); err != nil {
+			continue
+		}
+		t.LastSeen = lastSeen.Time()
 		trends = append(trends, t)
 	}
 
@@ -430,11 +446,13 @@ func (h *AIRadarHandler) GetPersonalizedRecommendations(c *gin.Context) {
 
 	var userCars []string
 	if err == nil {
-		defer rows.Close()
+		defer func() { _ = rows.Close() }()
 		for rows.Next() {
 			var brand, model string
 			var year int
-			rows.Scan(&brand, &model, &year)
+			if err := rows.Scan(&brand, &model, &year); err != nil {
+				continue
+			}
 			userCars = append(userCars, fmt.Sprintf("%s %s %d", brand, model, year))
 		}
 	}
@@ -463,10 +481,12 @@ func (h *AIRadarHandler) GetPersonalizedRecommendations(c *gin.Context) {
 
 	var recommendations []RecommendedProduct
 	if err == nil {
-		defer recRows.Close()
+		defer func() { _ = recRows.Close() }()
 		for recRows.Next() {
 			var r RecommendedProduct
-			recRows.Scan(&r.ProductID, &r.Score, &r.ReasonAR, &r.NameAR, &r.NameEN, &r.Price, &r.Images)
+			if err := recRows.Scan(&r.ProductID, &r.Score, &r.ReasonAR, &r.NameAR, &r.NameEN, &r.Price, &r.Images); err != nil {
+				continue
+			}
 			recommendations = append(recommendations, r)
 		}
 	}
@@ -481,10 +501,12 @@ func (h *AIRadarHandler) GetPersonalizedRecommendations(c *gin.Context) {
 			LIMIT 12
 		`)
 		if popularRows != nil {
-			defer popularRows.Close()
+			defer func() { _ = popularRows.Close() }()
 			for popularRows.Next() {
 				var r RecommendedProduct
-				popularRows.Scan(&r.ProductID, &r.NameAR, &r.NameEN, &r.Price, &r.Images)
+				if err := popularRows.Scan(&r.ProductID, &r.NameAR, &r.NameEN, &r.Price, &r.Images); err != nil {
+					continue
+				}
 				r.Score = 0.5
 				r.ReasonAR = "الأكثر مبيعاً"
 				recommendations = append(recommendations, r)
@@ -603,7 +625,7 @@ func (h *AIRadarHandler) analyzeWithClaude(ctx context.Context, requests []model
 	if err != nil {
 		return nil, fmt.Errorf("claude http error: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -688,7 +710,7 @@ func (h *AIRadarHandler) generateSourcingBriefing(signal models.DemandSignal) st
 	if err != nil {
 		return signal.SuggestedAction
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var claudeResp claudeResponse
 	if err := json.NewDecoder(resp.Body).Decode(&claudeResp); err != nil || len(claudeResp.Content) == 0 {
@@ -705,12 +727,15 @@ func (h *AIRadarHandler) checkSignalThresholds(req models.CustomerRequest) {
 
 	// Count similar requests in last 24 hours
 	var count24h int
-	h.db.QueryRowContext(ctx, `
+	if err := h.db.QueryRowContext(ctx, `
 		SELECT COUNT(*) FROM customer_requests
 		WHERE query_raw LIKE ?
 		  AND created_at >= datetime('now', '-1 day')
 		  AND is_fulfilled = 0
-	`, "%"+getKeywords(req.QueryRaw)+"%").Scan(&count24h)
+	`, "%"+getKeywords(req.QueryRaw)+"%").Scan(&count24h); err != nil {
+		log.Printf("⚠️  Failed to check signal threshold: %v", err)
+		return
+	}
 
 	// If > 10 similar requests in 24h, this is high urgency
 	if count24h >= 10 {
@@ -757,11 +782,4 @@ func getKeywords(query string) string {
 		return words[0]
 	}
 	return query
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }

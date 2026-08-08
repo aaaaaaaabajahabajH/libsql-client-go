@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { fetchCarBrands, fetchCarModels, type CarBrand, type CarModel } from "../api/client";
+import { fetchCarBrands, fetchCarModels } from "../api/client";
 import { colors } from "../theme/colors";
 
 interface Props {
