@@ -43,7 +43,11 @@ jobs:
         run: go vet -v ./...
 
       - name: Install sqlclosecheck
-        run: go install github.com/ryanrolds/sqlclosecheck@latest
+        # Pinned: @latest resolves to v0.6.0, whose go.mod requires go 1.25's
+        # strict X.Y.Z version format, which the go1.20 toolchain in this
+        # matrix can't even parse. v0.5.1 is the newest version declaring a
+        # plain `go 1.20` directive, so it installs on both matrix entries.
+        run: go install github.com/ryanrolds/sqlclosecheck@v0.5.1
 
       - name: sqlclosecheck
         run: go vet -vettool=${HOME}/go/bin/sqlclosecheck ./...
