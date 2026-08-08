@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gin-gonic/gin"
 	"github.com/ghyari/api/internal/storage"
+	"github.com/gin-gonic/gin"
 )
 
 // UploadHandler exposes GCS upload endpoints
@@ -87,7 +87,7 @@ func (h *UploadHandler) UploadDirect(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "open_file_error"})
 		return
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	publicURL, err := h.gcs.UploadFile(c.Request.Context(), dir, fh.Filename, f, ct)
 	if err != nil {

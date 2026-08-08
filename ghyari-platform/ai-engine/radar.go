@@ -15,22 +15,22 @@ import (
 
 // DemandSignal represents a detected customer demand pattern
 type DemandSignal struct {
-	ID           string    `json:"id"`
-	ProductName  string    `json:"product_name"`
-	ProductNameAR string   `json:"product_name_ar"`
-	Category     string    `json:"category"`
-	CarModel     string    `json:"car_model"`
-	RequestCount int       `json:"request_count"`
-	Urgency      string    `json:"urgency"` // low | medium | high | critical
-	Confidence   float64   `json:"confidence"`
-	DetectedAt   time.Time `json:"detected_at"`
-	SuggestedAction string `json:"suggested_action"`
+	ID              string    `json:"id"`
+	ProductName     string    `json:"product_name"`
+	ProductNameAR   string    `json:"product_name_ar"`
+	Category        string    `json:"category"`
+	CarModel        string    `json:"car_model"`
+	RequestCount    int       `json:"request_count"`
+	Urgency         string    `json:"urgency"` // low | medium | high | critical
+	Confidence      float64   `json:"confidence"`
+	DetectedAt      time.Time `json:"detected_at"`
+	SuggestedAction string    `json:"suggested_action"`
 }
 
 // CustomerRequest captures what customers are searching/asking for
 type CustomerRequest struct {
 	ID        string    `json:"id"`
-	Query     string    `json:"query"`      // raw customer query (Arabic/English)
+	Query     string    `json:"query"` // raw customer query (Arabic/English)
 	UserID    string    `json:"user_id"`
 	SessionID string    `json:"session_id"`
 	CarModel  string    `json:"car_model"`
@@ -75,7 +75,7 @@ func NewAIRadar() *AIRadar {
 		}
 	}
 	return &AIRadar{
-		claudeAPIKey: os.Getenv("CLAUDE_API_KEY"),
+		claudeAPIKey: os.Getenv("ANTHROPIC_API_KEY"),
 		claudeModel:  "claude-opus-4-7",
 		httpClient:   &http.Client{Timeout: 30 * time.Second},
 		scanInterval: interval,
@@ -210,7 +210,7 @@ func (r *AIRadar) askClaude(ctx context.Context, prompt string) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)

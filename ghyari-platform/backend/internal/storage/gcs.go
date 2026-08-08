@@ -50,7 +50,7 @@ func NewGCSClient(ctx context.Context) (*GCSClient, error) {
 }
 
 // Close releases the underlying GCS connection
-func (g *GCSClient) Close() { g.client.Close() }
+func (g *GCSClient) Close() error { return g.client.Close() }
 
 // UploadFile uploads r to GCS under the given directory prefix and returns the public URL.
 // Allowed content types: image/jpeg, image/png, image/webp, model/gltf-binary, model/gltf+json

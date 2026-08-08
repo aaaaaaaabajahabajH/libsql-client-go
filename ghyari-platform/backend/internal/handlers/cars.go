@@ -22,7 +22,7 @@ func (h *CarHandler) ListBrands(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error"})
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	brands := []map[string]any{}
 	for rows.Next() {
@@ -59,7 +59,7 @@ func (h *CarHandler) ListModels(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error"})
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	models := []map[string]any{}
 	for rows.Next() {

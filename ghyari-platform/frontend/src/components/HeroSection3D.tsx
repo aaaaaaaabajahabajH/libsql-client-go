@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { colors } from "../theme/colors";
 
 // Animated particle system for the hero background
-function createParticleSystem(scene: THREE.Scene): THREE.Points {
+function createParticleSystem(): THREE.Points {
   const count = 2000;
   const positions = new Float32Array(count * 3);
   const colorArr = new Float32Array(count * 3);
@@ -164,7 +164,7 @@ export default function HeroSection3D() {
     scene.add(topLight);
 
     // 3D Objects
-    const particles = createParticleSystem(scene);
+    const particles = createParticleSystem();
     scene.add(particles);
 
     const brakeDisc = createBrakeDisc();

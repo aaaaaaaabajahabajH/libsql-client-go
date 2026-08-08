@@ -15,6 +15,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
+	_ "modernc.org/sqlite" // registers the "sqlite" driver the libsql driver delegates to for file:// URLs
 
 	"github.com/ghyari/api/internal/db"
 	"github.com/ghyari/api/internal/handlers"
@@ -41,8 +42,8 @@ func main() {
 	// ── Startup validation ────────────────────────────────────────────────────
 	if os.Getenv("GIN_MODE") == "release" {
 		required := map[string]string{
-			"DATABASE_URL":    dbURL,
-			"JWT_SECRET":      os.Getenv("JWT_SECRET"),
+			"DATABASE_URL":      dbURL,
+			"JWT_SECRET":        os.Getenv("JWT_SECRET"),
 			"ANTHROPIC_API_KEY": os.Getenv("ANTHROPIC_API_KEY"),
 		}
 		for name, val := range required {
@@ -65,7 +66,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to open database: %v", err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 
 	database.SetMaxOpenConns(25)
 	database.SetMaxIdleConns(10)
@@ -97,7 +98,7 @@ func main() {
 			log.Printf("⚠️  GCS not available: %v", gcsErr)
 		} else {
 			gcsClient = c
-			defer gcsClient.Close()
+			defer func() { _ = gcsClient.Close() }()
 			log.Println("✅ Google Cloud Storage connected:", os.Getenv("GCS_BUCKET"))
 		}
 		gcsCancel()
@@ -119,7 +120,7 @@ func main() {
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Request-ID"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Request-ID", "X-Session-ID"},
 		ExposeHeaders:    []string{"X-Request-ID", "X-RateLimit-Remaining"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,

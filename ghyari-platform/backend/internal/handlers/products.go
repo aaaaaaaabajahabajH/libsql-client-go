@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -25,10 +27,35 @@ func NewProductHandler(db *sql.DB) *ProductHandler {
 	return &ProductHandler{db: db}
 }
 
+// productColumns lists the products table columns in the exact order
+// scanProductRows expects them. Queries must select these explicitly
+// (never `SELECT *`) so column order stays decoupled from the table's
+// physical layout in the schema.
+const productColumns = `id, name_ar, name_en, description_ar, description_en,
+	sku, barcode, category_id, sub_category, brand, car_brand,
+	price, sale_price, currency, stock, low_stock_alert,
+	images, model_3d_url, is_performance, is_tuning, is_oem,
+	distributor_id, weight_kg, dimensions,
+	tags, search_keywords_ar, compatibility,
+	rating, review_count, sold_count, view_count,
+	is_active, is_featured, created_at, updated_at`
+
+// productColumnsAliased is productColumns with a "p." table alias prefix,
+// for queries that join products under the alias p.
+const productColumnsAliased = `p.id, p.name_ar, p.name_en, p.description_ar, p.description_en,
+	p.sku, p.barcode, p.category_id, p.sub_category, p.brand, p.car_brand,
+	p.price, p.sale_price, p.currency, p.stock, p.low_stock_alert,
+	p.images, p.model_3d_url, p.is_performance, p.is_tuning, p.is_oem,
+	p.distributor_id, p.weight_kg, p.dimensions,
+	p.tags, p.search_keywords_ar, p.compatibility,
+	p.rating, p.review_count, p.sold_count, p.view_count,
+	p.is_active, p.is_featured, p.created_at, p.updated_at`
+
 // List godoc
 // GET /api/v1/products
 // Query params: category, car_brand, car_model, year_from, year_to, min_price, max_price,
-//               is_tuning, in_stock, sort_by, page, limit
+//
+//	is_tuning, in_stock, sort_by, page, limit
 func (h *ProductHandler) List(c *gin.Context) {
 	filter := &models.ProductFilter{
 		Page:  1,
@@ -73,7 +100,7 @@ func (h *ProductHandler) List(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_query_error", "message": err.Error()})
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	products, err := scanProductRows(rows)
 	if err != nil {
@@ -116,7 +143,9 @@ func (h *ProductHandler) GetByID(c *gin.Context) {
 
 	// Increment view count (non-blocking)
 	go func() {
-		h.db.Exec("UPDATE products SET view_count = view_count + 1 WHERE id = ?", id)
+		if _, err := h.db.Exec("UPDATE products SET view_count = view_count + 1 WHERE id = ?", id); err != nil {
+			log.Printf("⚠️  Failed to increment view count for product %s: %v", id, err)
+		}
 	}()
 
 	c.JSON(http.StatusOK, gin.H{"data": product})
@@ -143,7 +172,7 @@ func (h *ProductHandler) Search(c *gin.Context) {
 
 	// FTS5 search on Arabic + English fields + SKU
 	searchQuery := `
-		SELECT p.*, rank
+		SELECT ` + productColumnsAliased + `
 		FROM products p
 		JOIN products_fts ON products_fts.rowid = p.rowid
 		WHERE products_fts MATCH ?
@@ -157,9 +186,10 @@ func (h *ProductHandler) Search(c *gin.Context) {
 
 	rows, err := h.db.QueryContext(c.Request.Context(), searchQuery, ftsQuery, limit, offset)
 	if err != nil {
-		// Fallback to LIKE search if FTS fails
+		// Fallback to LIKE search if FTS fails (e.g. products_fts unavailable)
 		rows, err = h.db.QueryContext(c.Request.Context(), `
-			SELECT * FROM products
+			SELECT `+productColumns+`
+			FROM products
 			WHERE is_active = 1
 			  AND (name_ar LIKE ? OR name_en LIKE ? OR sku LIKE ? OR brand LIKE ?)
 			ORDER BY sold_count DESC, rating DESC
@@ -170,7 +200,7 @@ func (h *ProductHandler) Search(c *gin.Context) {
 			return
 		}
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	products, err := scanProductRows(rows)
 	if err != nil {
@@ -178,25 +208,31 @@ func (h *ProductHandler) Search(c *gin.Context) {
 		return
 	}
 
-	// Log this search for AI Radar
-	go func() {
-		if len(products) == 0 {
+	// Log this search for AI Radar. Values are captured here (not inside the
+	// goroutine) because gin recycles *gin.Context via a sync.Pool once the
+	// handler returns, so reading from c after that point is unsafe.
+	if len(products) == 0 {
+		userID, _ := c.Get("user_id")
+		sessionID := c.GetHeader("X-Session-ID")
+		country := c.GetHeader("CF-IPCountry")
+		go func() {
 			// Zero results = strong demand signal
-			userID, _ := c.Get("user_id")
-			h.db.Exec(`
+			if _, err := h.db.Exec(`
 				INSERT INTO customer_requests
 				(id, user_id, session_id, query_raw, signal_type, country, created_at)
 				VALUES (?, ?, ?, ?, 'search_not_found', ?, ?)
 			`,
 				uuid.New().String(),
 				fmt.Sprintf("%v", userID),
-				c.GetHeader("X-Session-ID"),
+				sessionID,
 				q,
-				c.GetHeader("CF-IPCountry"),
-				time.Now(),
-			)
-		}
-	}()
+				country,
+				formatSQLTime(time.Now()),
+			); err != nil {
+				log.Printf("⚠️  Failed to log search-not-found signal: %v", err)
+			}
+		}()
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"data":  products,
@@ -226,44 +262,52 @@ func (h *ProductHandler) Compatible(c *gin.Context) {
 	offset := (page - 1) * limit
 
 	args := []interface{}{carBrand, "%" + carModel + "%"}
-	whereExtra := ""
 
+	// yearClause filters the compatibility rows themselves (inside the
+	// subquery, where pc is in scope); categoryClause filters the outer
+	// product query (where p is in scope). Keeping them as two separate
+	// clauses — rather than one string spliced into a single %s slot —
+	// avoids nesting a boolean AND expression inside a LOWER(...) call.
+	yearClause := ""
 	if yearStr != "" {
 		year, err := strconv.Atoi(yearStr)
 		if err == nil {
-			whereExtra += " AND (comp.year_from <= ? AND (comp.year_to = 0 OR comp.year_to >= ?))"
+			yearClause = " AND (pc.year_from <= ? AND (pc.year_to = 0 OR pc.year_to >= ?))"
 			args = append(args, year, year)
 		}
 	}
 
+	categoryClause := ""
 	if category != "" {
-		whereExtra += " AND p.category = ?"
+		categoryClause = " AND p.category_id = ?"
 		args = append(args, category)
 	}
 
 	args = append(args, limit, offset)
 
 	query := fmt.Sprintf(`
-		SELECT DISTINCT p.*
+		SELECT DISTINCT %s
 		FROM products p
 		JOIN (
-			SELECT DISTINCT product_id
+			SELECT DISTINCT pc.product_id
 			FROM product_compatibility pc
 			JOIN car_models cm ON cm.id = pc.car_model_id
-			WHERE LOWER(cm.brand) = LOWER(?)
-			  AND LOWER(cm.model) LIKE LOWER(?%s)
+			WHERE LOWER(cm.brand_id) = LOWER(?)
+			  AND LOWER(cm.name_en) LIKE LOWER(?)
+			  %s
 		) comp ON comp.product_id = p.id
 		WHERE p.is_active = 1
+		  %s
 		ORDER BY p.is_featured DESC, p.sold_count DESC
 		LIMIT ? OFFSET ?
-	`, whereExtra)
+	`, productColumnsAliased, yearClause, categoryClause)
 
 	rows, err := h.db.QueryContext(c.Request.Context(), query, args...)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error", "message": err.Error()})
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	products, err := scanProductRows(rows)
 	if err != nil {
@@ -314,20 +358,20 @@ func (h *ProductHandler) ListPerformanceParts(c *gin.Context) {
 	args = append(args, limit, offset)
 
 	query := fmt.Sprintf(`
-		SELECT * FROM products
+		SELECT %s FROM products
 		WHERE is_active = 1
 		  AND (is_performance = 1 OR is_tuning = 1)
 		  %s
 		ORDER BY is_featured DESC, %s
 		LIMIT ? OFFSET ?
-	`, brandFilter, orderClause)
+	`, productColumns, brandFilter, orderClause)
 
 	rows, err := h.db.QueryContext(c.Request.Context(), query, args...)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error", "message": err.Error()})
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	products, err := scanProductRows(rows)
 	if err != nil {
@@ -342,7 +386,7 @@ func (h *ProductHandler) ListPerformanceParts(c *gin.Context) {
 // GET /api/v1/products/featured
 func (h *ProductHandler) ListFeatured(c *gin.Context) {
 	rows, err := h.db.QueryContext(c.Request.Context(), `
-		SELECT * FROM products
+		SELECT `+productColumns+` FROM products
 		WHERE is_active = 1 AND is_featured = 1
 		ORDER BY sold_count DESC
 		LIMIT 12
@@ -351,7 +395,7 @@ func (h *ProductHandler) ListFeatured(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error"})
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	products, err := scanProductRows(rows)
 	if err != nil {
@@ -388,7 +432,7 @@ func (h *ProductHandler) Create(c *gin.Context) {
 	_, err := h.db.ExecContext(c.Request.Context(), `
 		INSERT INTO products (
 			id, name_ar, name_en, description_ar, description_en, sku, barcode,
-			category, sub_category, brand, car_brand, price, sale_price, currency,
+			category_id, sub_category, brand, car_brand, price, sale_price, currency,
 			stock, low_stock_alert, images, model_3d_url, is_performance, is_tuning,
 			is_oem, distributor_id, weight_kg, dimensions, tags, search_keywords_ar,
 			rating, review_count, sold_count, view_count, is_active, is_featured,
@@ -402,7 +446,7 @@ func (h *ProductHandler) Create(c *gin.Context) {
 		p.Category, p.SubCategory, p.Brand, p.CarBrand, p.Price, p.SalePrice, p.Currency,
 		p.Stock, p.LowStockAlert, string(imagesJSON), p.Model3DURL, p.IsPerformance, p.IsTuning,
 		p.IsOEM, p.DistributorID, p.Weight, p.Dimensions, string(tagsJSON), string(keywordsJSON),
-		0, 0, 0, 0, true, p.IsFeatured, string(compatJSON), p.CreatedAt, p.UpdatedAt,
+		0, 0, 0, 0, true, p.IsFeatured, string(compatJSON), formatSQLTime(p.CreatedAt), formatSQLTime(p.UpdatedAt),
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "insert_error", "message": err.Error()})
@@ -434,7 +478,7 @@ func (h *ProductHandler) Update(c *gin.Context) {
 	result, err := h.db.ExecContext(c.Request.Context(), `
 		UPDATE products SET
 			name_ar = ?, name_en = ?, description_ar = ?, description_en = ?,
-			category = ?, sub_category = ?, brand = ?, car_brand = ?,
+			category_id = ?, sub_category = ?, brand = ?, car_brand = ?,
 			price = ?, sale_price = ?, stock = ?, images = ?,
 			model_3d_url = ?, is_performance = ?, is_tuning = ?, is_oem = ?,
 			is_active = ?, is_featured = ?, tags = ?, compatibility = ?,
@@ -446,7 +490,7 @@ func (h *ProductHandler) Update(c *gin.Context) {
 		p.Price, p.SalePrice, p.Stock, string(imagesJSON),
 		p.Model3DURL, p.IsPerformance, p.IsTuning, p.IsOEM,
 		p.IsActive, p.IsFeatured, string(tagsJSON), string(compatJSON),
-		p.UpdatedAt, id,
+		formatSQLTime(p.UpdatedAt), id,
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "update_error", "message": err.Error()})
@@ -470,7 +514,7 @@ func (h *ProductHandler) Delete(c *gin.Context) {
 	// Soft delete
 	result, err := h.db.ExecContext(c.Request.Context(),
 		"UPDATE products SET is_active = 0, updated_at = ? WHERE id = ?",
-		time.Now(), id,
+		formatSQLTime(time.Now()), id,
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "delete_error"})
@@ -524,14 +568,14 @@ func (h *ProductHandler) BulkImport(c *gin.Context) {
 
 		_, err := tx.ExecContext(c.Request.Context(), `
 			INSERT OR IGNORE INTO products (
-				id, name_ar, name_en, sku, category, brand, car_brand,
+				id, name_ar, name_en, sku, category_id, brand, car_brand,
 				price, currency, stock, images, compatibility, tags,
 				is_performance, is_tuning, is_active, created_at, updated_at
 			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		`,
 			p.ID, p.NameAR, p.NameEN, p.SKU, p.Category, p.Brand, p.CarBrand,
 			p.Price, p.Currency, p.Stock, string(imagesJSON), string(compatJSON), string(tagsJSON),
-			p.IsPerformance, p.IsTuning, true, p.CreatedAt, p.UpdatedAt,
+			p.IsPerformance, p.IsTuning, true, formatSQLTime(p.CreatedAt), formatSQLTime(p.UpdatedAt),
 		)
 		if err != nil {
 			errors = append(errors, fmt.Sprintf("row %d: %v", i+1, err))
@@ -541,7 +585,7 @@ func (h *ProductHandler) BulkImport(c *gin.Context) {
 	}
 
 	if err := tx.Commit(); err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "commit_error"})
 		return
 	}
@@ -555,17 +599,71 @@ func (h *ProductHandler) BulkImport(c *gin.Context) {
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
-func (h *ProductHandler) fetchProductByID(ctx interface{ Deadline() (time.Time, bool) }, id string) (*models.Product, error) {
-	// Use context.Context properly via http.Request.Context()
-	return nil, sql.ErrNoRows // placeholder — implement with actual scan
+func (h *ProductHandler) fetchProductByID(ctx context.Context, id string) (*models.Product, error) {
+	row := h.db.QueryRowContext(ctx, "SELECT "+productColumns+" FROM products WHERE id = ?", id)
+	return scanProduct(row)
+}
+
+// rowScanner is satisfied by both *sql.Row and *sql.Rows.
+type rowScanner interface {
+	Scan(dest ...interface{}) error
+}
+
+// scanProduct scans a single row (in productColumns order) into a Product.
+// Several product columns are nullable in the schema, so they're scanned
+// into sql.Null* first rather than directly into the struct's plain
+// string/float64 fields, which would otherwise fail with "converting NULL
+// to string/float64 is unsupported" for any row that leaves them unset.
+func scanProduct(row rowScanner) (*models.Product, error) {
+	p := &models.Product{}
+	var imagesJSON, tagsJSON, keywordsJSON string
+	var descriptionAR, descriptionEN, barcode, category, subCategory, model3DURL, distributorID, dimensions, compatJSON sql.NullString
+	var salePrice, weight sql.NullFloat64
+	var createdAt, updatedAt dbTime
+
+	err := row.Scan(
+		&p.ID, &p.NameAR, &p.NameEN, &descriptionAR, &descriptionEN,
+		&p.SKU, &barcode, &category, &subCategory, &p.Brand, &p.CarBrand,
+		&p.Price, &salePrice, &p.Currency, &p.Stock, &p.LowStockAlert,
+		&imagesJSON, &model3DURL, &p.IsPerformance, &p.IsTuning, &p.IsOEM,
+		&distributorID, &weight, &dimensions,
+		&tagsJSON, &keywordsJSON, &compatJSON,
+		&p.Rating, &p.ReviewCount, &p.SoldCount, &p.ViewCount,
+		&p.IsActive, &p.IsFeatured, &createdAt, &updatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	p.CreatedAt = createdAt.Time()
+	p.UpdatedAt = updatedAt.Time()
+
+	p.DescriptionAR = descriptionAR.String
+	p.DescriptionEN = descriptionEN.String
+	p.Barcode = barcode.String
+	p.Category = category.String
+	p.SubCategory = subCategory.String
+	p.Model3DURL = model3DURL.String
+	p.DistributorID = distributorID.String
+	p.Dimensions = dimensions.String
+	p.SalePrice = salePrice.Float64
+	p.Weight = weight.Float64
+
+	_ = json.Unmarshal([]byte(imagesJSON), &p.Images)
+	if compatJSON.Valid {
+		_ = json.Unmarshal([]byte(compatJSON.String), &p.Compatibility)
+	}
+	_ = json.Unmarshal([]byte(tagsJSON), &p.Tags)
+	_ = json.Unmarshal([]byte(keywordsJSON), &p.SearchKeywordsAR)
+
+	return p, nil
 }
 
 func buildProductListQuery(f *models.ProductFilter) (string, []interface{}) {
-	base := "SELECT * FROM products WHERE is_active = 1"
+	base := "SELECT " + productColumns + " FROM products WHERE is_active = 1"
 	args := []interface{}{}
 
 	if f.Category != "" {
-		base += " AND category = ?"
+		base += " AND category_id = ?"
 		args = append(args, f.Category)
 	}
 	if f.CarBrand != "" {
@@ -605,36 +703,17 @@ func buildProductListQuery(f *models.ProductFilter) (string, []interface{}) {
 
 func buildProductCountQuery(f *models.ProductFilter) string {
 	query, _ := buildProductListQuery(f)
-	// Replace SELECT * with SELECT COUNT(*)
-	return strings.Replace(query, "SELECT * FROM products", "SELECT COUNT(*) FROM products", 1)
+	return strings.Replace(query, "SELECT "+productColumns+" FROM products", "SELECT COUNT(*) FROM products", 1)
 }
 
 func scanProductRows(rows *sql.Rows) ([]*models.Product, error) {
 	var products []*models.Product
 
 	for rows.Next() {
-		p := &models.Product{}
-		var imagesJSON, compatJSON, tagsJSON, keywordsJSON string
-
-		err := rows.Scan(
-			&p.ID, &p.NameAR, &p.NameEN, &p.DescriptionAR, &p.DescriptionEN,
-			&p.SKU, &p.Barcode, &p.Category, &p.SubCategory, &p.Brand, &p.CarBrand,
-			&p.Price, &p.SalePrice, &p.Currency, &p.Stock, &p.LowStockAlert,
-			&imagesJSON, &p.Model3DURL, &p.IsPerformance, &p.IsTuning, &p.IsOEM,
-			&p.DistributorID, &p.Weight, &p.Dimensions,
-			&tagsJSON, &keywordsJSON, &compatJSON,
-			&p.Rating, &p.ReviewCount, &p.SoldCount, &p.ViewCount,
-			&p.IsActive, &p.IsFeatured, &p.CreatedAt, &p.UpdatedAt,
-		)
+		p, err := scanProduct(rows)
 		if err != nil {
 			return nil, fmt.Errorf("scan error: %w", err)
 		}
-
-		json.Unmarshal([]byte(imagesJSON), &p.Images)
-		json.Unmarshal([]byte(compatJSON), &p.Compatibility)
-		json.Unmarshal([]byte(tagsJSON), &p.Tags)
-		json.Unmarshal([]byte(keywordsJSON), &p.SearchKeywordsAR)
-
 		products = append(products, p)
 	}
 
@@ -650,19 +729,18 @@ func NewCategoryHandler(db *sql.DB) *CategoryHandler { return &CategoryHandler{d
 
 func (h *CategoryHandler) List(c *gin.Context) {
 	rows, err := h.db.QueryContext(c.Request.Context(),
-		"SELECT id, name_ar, name_en, parent_id, type, icon_url, sort_order FROM categories WHERE parent_id IS NULL ORDER BY sort_order")
+		"SELECT id, name_ar, name_en, parent_id, icon_url, sort_order FROM categories WHERE parent_id IS NULL ORDER BY sort_order")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error"})
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	type Category struct {
 		ID       string  `json:"id"`
 		NameAR   string  `json:"name_ar"`
 		NameEN   string  `json:"name_en"`
 		ParentID *string `json:"parent_id"`
-		Type     string  `json:"type"`
 		IconURL  string  `json:"icon_url"`
 		Sort     int     `json:"sort_order"`
 	}
@@ -670,7 +748,11 @@ func (h *CategoryHandler) List(c *gin.Context) {
 	var cats []Category
 	for rows.Next() {
 		var cat Category
-		rows.Scan(&cat.ID, &cat.NameAR, &cat.NameEN, &cat.ParentID, &cat.Type, &cat.IconURL, &cat.Sort)
+		var iconURL sql.NullString
+		if err := rows.Scan(&cat.ID, &cat.NameAR, &cat.NameEN, &cat.ParentID, &iconURL, &cat.Sort); err != nil {
+			continue
+		}
+		cat.IconURL = iconURL.String
 		cats = append(cats, cat)
 	}
 	c.JSON(http.StatusOK, gin.H{"data": cats})
@@ -683,7 +765,11 @@ func (h *CategoryHandler) GetByID(c *gin.Context) {
 func (h *CategoryHandler) GetProducts(c *gin.Context) {
 	categoryID := c.Param("id")
 	filter := &models.ProductFilter{Category: categoryID, Page: 1, Limit: 24}
-	c.ShouldBindQuery(filter)
+	if err := c.ShouldBindQuery(filter); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_params", "message": err.Error()})
+		return
+	}
+	filter.Category = categoryID // path param takes precedence over any query-string override
 	query, args := buildProductListQuery(filter)
 	args = append(args, filter.Limit, (filter.Page-1)*filter.Limit)
 	query += " LIMIT ? OFFSET ?"
@@ -692,8 +778,12 @@ func (h *CategoryHandler) GetProducts(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error"})
 		return
 	}
-	defer rows.Close()
-	products, _ := scanProductRows(rows)
+	defer func() { _ = rows.Close() }()
+	products, err := scanProductRows(rows)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "scan_error", "message": err.Error()})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"data": products})
 }
 
@@ -714,7 +804,7 @@ func (h *OrderHandler) GetCart(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error"})
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	type CartItem struct {
 		ID        string  `json:"id"`
 		ProductID string  `json:"product_id"`
@@ -728,7 +818,9 @@ func (h *OrderHandler) GetCart(c *gin.Context) {
 	var total float64
 	for rows.Next() {
 		var item CartItem
-		rows.Scan(&item.ID, &item.ProductID, &item.Quantity, &item.NameAR, &item.NameEN, &item.Price, &item.Images)
+		if err := rows.Scan(&item.ID, &item.ProductID, &item.Quantity, &item.NameAR, &item.NameEN, &item.Price, &item.Images); err != nil {
+			continue
+		}
 		total += item.Price * float64(item.Quantity)
 		items = append(items, item)
 	}
@@ -750,7 +842,7 @@ func (h *OrderHandler) AddToCart(c *gin.Context) {
 		INSERT INTO cart_items (id, user_id, product_id, quantity, added_at)
 		VALUES (?, ?, ?, ?, ?)
 		ON CONFLICT(user_id, product_id) DO UPDATE SET quantity = quantity + excluded.quantity
-	`, id, userID, req.ProductID, req.Quantity, time.Now())
+	`, id, userID, req.ProductID, req.Quantity, formatSQLTime(time.Now()))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error"})
 		return
@@ -768,10 +860,15 @@ func (h *OrderHandler) UpdateCartItem(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_payload"})
 		return
 	}
+	var err error
 	if req.Quantity == 0 {
-		h.db.ExecContext(c.Request.Context(), "DELETE FROM cart_items WHERE id = ? AND user_id = ?", itemID, userID)
+		_, err = h.db.ExecContext(c.Request.Context(), "DELETE FROM cart_items WHERE id = ? AND user_id = ?", itemID, userID)
 	} else {
-		h.db.ExecContext(c.Request.Context(), "UPDATE cart_items SET quantity = ? WHERE id = ? AND user_id = ?", req.Quantity, itemID, userID)
+		_, err = h.db.ExecContext(c.Request.Context(), "UPDATE cart_items SET quantity = ? WHERE id = ? AND user_id = ?", req.Quantity, itemID, userID)
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error"})
+		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "تم التحديث / Updated"})
 }
@@ -779,13 +876,19 @@ func (h *OrderHandler) UpdateCartItem(c *gin.Context) {
 func (h *OrderHandler) RemoveFromCart(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	itemID := c.Param("itemId")
-	h.db.ExecContext(c.Request.Context(), "DELETE FROM cart_items WHERE id = ? AND user_id = ?", itemID, userID)
+	if _, err := h.db.ExecContext(c.Request.Context(), "DELETE FROM cart_items WHERE id = ? AND user_id = ?", itemID, userID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error"})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"message": "تمت الإزالة / Removed"})
 }
 
 func (h *OrderHandler) ClearCart(c *gin.Context) {
 	userID, _ := c.Get("user_id")
-	h.db.ExecContext(c.Request.Context(), "DELETE FROM cart_items WHERE user_id = ?", userID)
+	if _, err := h.db.ExecContext(c.Request.Context(), "DELETE FROM cart_items WHERE user_id = ?", userID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error"})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"message": "تم مسح السلة / Cart cleared"})
 }
 
@@ -800,25 +903,49 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_payload"})
 		return
 	}
+	// subtotal/total are NOT NULL columns on orders, so they must be computed
+	// from the cart up front — the previous version never supplied them and
+	// every checkout failed with a NOT NULL constraint violation.
+	var subtotal float64
+	if err := h.db.QueryRowContext(c.Request.Context(), `
+		SELECT COALESCE(SUM(p.price * ci.quantity), 0)
+		FROM cart_items ci
+		JOIN products p ON p.id = ci.product_id
+		WHERE ci.user_id = ?
+	`, userID).Scan(&subtotal); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "cart_error"})
+		return
+	}
+	if subtotal <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "empty_cart", "message": "السلة فارغة / Cart is empty"})
+		return
+	}
+
 	orderID := uuid.New().String()
-	now := time.Now()
+	now := formatSQLTime(time.Now())
 	_, err := h.db.ExecContext(c.Request.Context(), `
-		INSERT INTO orders (id, user_id, status, shipping_address, payment_method, notes, created_at, updated_at)
-		VALUES (?, ?, 'pending', ?, ?, ?, ?, ?)
-	`, orderID, userID, req.ShippingAddress, req.PaymentMethod, req.Notes, now, now)
+		INSERT INTO orders (id, user_id, status, subtotal, total, shipping_address, payment_method, notes_ar, created_at, updated_at)
+		VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)
+	`, orderID, userID, subtotal, subtotal, req.ShippingAddress, req.PaymentMethod, req.Notes, now, now)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "order_create_error"})
 		return
 	}
-	h.db.ExecContext(c.Request.Context(), "DELETE FROM cart_items WHERE user_id = ?", userID)
+	if _, err := h.db.ExecContext(c.Request.Context(), "DELETE FROM cart_items WHERE user_id = ?", userID); err != nil {
+		log.Printf("⚠️  Failed to clear cart after order %s: %v", orderID, err)
+	}
 	c.JSON(http.StatusCreated, gin.H{"order_id": orderID, "status": "pending", "message": "تم إنشاء الطلب / Order created"})
 }
 
 func (h *OrderHandler) ListUserOrders(c *gin.Context) {
 	userID, _ := c.Get("user_id")
-	rows, _ := h.db.QueryContext(c.Request.Context(),
-		"SELECT id, status, total_amount, created_at FROM orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 20", userID)
-	defer rows.Close()
+	rows, err := h.db.QueryContext(c.Request.Context(),
+		"SELECT id, status, total AS total_amount, created_at FROM orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 20", userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error"})
+		return
+	}
+	defer func() { _ = rows.Close() }()
 	type OrderSummary struct {
 		ID          string    `json:"id"`
 		Status      string    `json:"status"`
@@ -828,7 +955,11 @@ func (h *OrderHandler) ListUserOrders(c *gin.Context) {
 	var orders []OrderSummary
 	for rows.Next() {
 		var o OrderSummary
-		rows.Scan(&o.ID, &o.Status, &o.TotalAmount, &o.CreatedAt)
+		var createdAt dbTime
+		if err := rows.Scan(&o.ID, &o.Status, &o.TotalAmount, &createdAt); err != nil {
+			continue
+		}
+		o.CreatedAt = createdAt.Time()
 		orders = append(orders, o)
 	}
 	c.JSON(http.StatusOK, gin.H{"data": orders})
@@ -838,7 +969,7 @@ func (h *OrderHandler) GetOrder(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	orderID := c.Param("id")
 	row := h.db.QueryRowContext(c.Request.Context(),
-		"SELECT id, status, total_amount, shipping_address, created_at FROM orders WHERE id = ? AND user_id = ?",
+		"SELECT id, status, total AS total_amount, shipping_address, created_at FROM orders WHERE id = ? AND user_id = ?",
 		orderID, userID)
 	var o struct {
 		ID              string    `json:"id"`
@@ -847,10 +978,12 @@ func (h *OrderHandler) GetOrder(c *gin.Context) {
 		ShippingAddress string    `json:"shipping_address"`
 		CreatedAt       time.Time `json:"created_at"`
 	}
-	if err := row.Scan(&o.ID, &o.Status, &o.TotalAmount, &o.ShippingAddress, &o.CreatedAt); err != nil {
+	var createdAt dbTime
+	if err := row.Scan(&o.ID, &o.Status, &o.TotalAmount, &o.ShippingAddress, &createdAt); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "order_not_found"})
 		return
 	}
+	o.CreatedAt = createdAt.Time()
 	c.JSON(http.StatusOK, gin.H{"data": o})
 }
 
@@ -859,7 +992,7 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 	orderID := c.Param("id")
 	result, err := h.db.ExecContext(c.Request.Context(),
 		"UPDATE orders SET status = 'cancelled', updated_at = ? WHERE id = ? AND user_id = ? AND status IN ('pending', 'confirmed')",
-		time.Now(), orderID, userID)
+		formatSQLTime(time.Now()), orderID, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "cancel_error"})
 		return
@@ -882,11 +1015,33 @@ func (h *OrderHandler) ListAllOrders(c *gin.Context) {
 		args = append(args, status)
 	}
 	args = append(args, limit)
-	rows, _ := h.db.QueryContext(c.Request.Context(),
-		fmt.Sprintf("SELECT id, user_id, status, total_amount, created_at FROM orders %s ORDER BY created_at DESC LIMIT ?", whereClause),
+	rows, err := h.db.QueryContext(c.Request.Context(),
+		fmt.Sprintf("SELECT id, user_id, status, total AS total_amount, created_at FROM orders %s ORDER BY created_at DESC LIMIT ?", whereClause),
 		args...)
-	defer rows.Close()
-	c.JSON(http.StatusOK, gin.H{"data": []interface{}{}})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error"})
+		return
+	}
+	defer func() { _ = rows.Close() }()
+
+	type AdminOrderSummary struct {
+		ID          string    `json:"id"`
+		UserID      string    `json:"user_id"`
+		Status      string    `json:"status"`
+		TotalAmount float64   `json:"total_amount"`
+		CreatedAt   time.Time `json:"created_at"`
+	}
+	orders := []AdminOrderSummary{}
+	for rows.Next() {
+		var o AdminOrderSummary
+		var createdAt dbTime
+		if err := rows.Scan(&o.ID, &o.UserID, &o.Status, &o.TotalAmount, &createdAt); err != nil {
+			continue
+		}
+		o.CreatedAt = createdAt.Time()
+		orders = append(orders, o)
+	}
+	c.JSON(http.StatusOK, gin.H{"data": orders})
 }
 
 func (h *OrderHandler) UpdateOrderStatus(c *gin.Context) {
@@ -903,7 +1058,10 @@ func (h *OrderHandler) UpdateOrderStatus(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_status"})
 		return
 	}
-	h.db.ExecContext(c.Request.Context(), "UPDATE orders SET status = ?, updated_at = ? WHERE id = ?", req.Status, time.Now(), orderID)
+	if _, err := h.db.ExecContext(c.Request.Context(), "UPDATE orders SET status = ?, updated_at = ? WHERE id = ?", req.Status, formatSQLTime(time.Now()), orderID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error"})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"message": "تم تحديث حالة الطلب / Order status updated"})
 }
 
@@ -914,24 +1072,25 @@ func NewDistributorHandler(db *sql.DB) *DistributorHandler { return &Distributor
 
 func (h *DistributorHandler) List(c *gin.Context) {
 	city := c.Query("city")
-	country := c.DefaultQuery("country", "SA")
-	args := []interface{}{country}
-	where := "WHERE country = ?"
+	args := []interface{}{}
+	where := ""
 	if city != "" {
-		where += " AND city = ?"
+		where = "WHERE city = ?"
 		args = append(args, city)
 	}
 	rows, err := h.db.QueryContext(c.Request.Context(),
-		fmt.Sprintf("SELECT id, name_ar, name_en, city, country, rating, is_verified FROM distributors %s ORDER BY is_verified DESC, rating DESC", where), args...)
+		fmt.Sprintf("SELECT id, name_ar, name_en, city, region, rating, is_verified FROM distributors %s ORDER BY is_verified DESC, rating DESC", where), args...)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error"})
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var dists []models.Distributor
 	for rows.Next() {
 		var d models.Distributor
-		rows.Scan(&d.ID, &d.NameAR, &d.NameEN, &d.City, &d.Region, &d.Rating, &d.IsVerified)
+		if err := rows.Scan(&d.ID, &d.NameAR, &d.NameEN, &d.City, &d.Region, &d.Rating, &d.IsVerified); err != nil {
+			continue
+		}
 		dists = append(dists, d)
 	}
 	c.JSON(http.StatusOK, gin.H{"data": dists})
@@ -940,13 +1099,19 @@ func (h *DistributorHandler) List(c *gin.Context) {
 func (h *DistributorHandler) GetByID(c *gin.Context) {
 	id := c.Param("id")
 	var d models.Distributor
+	var address sql.NullString
 	err := h.db.QueryRowContext(c.Request.Context(),
 		"SELECT id, name_ar, name_en, city, region, phone, whatsapp, address, is_verified, rating FROM distributors WHERE id = ?", id).
-		Scan(&d.ID, &d.NameAR, &d.NameEN, &d.City, &d.Region, &d.Phone, &d.WhatsApp, &d.Address, &d.IsVerified, &d.Rating)
+		Scan(&d.ID, &d.NameAR, &d.NameEN, &d.City, &d.Region, &d.Phone, &d.WhatsApp, &address, &d.IsVerified, &d.Rating)
 	if err == sql.ErrNoRows {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not_found"})
 		return
 	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error"})
+		return
+	}
+	d.Address = address.String
 	c.JSON(http.StatusOK, gin.H{"data": d})
 }
 
@@ -956,13 +1121,19 @@ func (h *DistributorHandler) Nearby(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "city_required"})
 		return
 	}
-	rows, _ := h.db.QueryContext(c.Request.Context(),
+	rows, err := h.db.QueryContext(c.Request.Context(),
 		"SELECT id, name_ar, name_en, city, phone, is_verified, rating FROM distributors WHERE city = ? ORDER BY is_verified DESC, rating DESC LIMIT 10", city)
-	defer rows.Close()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error"})
+		return
+	}
+	defer func() { _ = rows.Close() }()
 	var dists []models.Distributor
 	for rows.Next() {
 		var d models.Distributor
-		rows.Scan(&d.ID, &d.NameAR, &d.NameEN, &d.City, &d.Phone, &d.IsVerified, &d.Rating)
+		if err := rows.Scan(&d.ID, &d.NameAR, &d.NameEN, &d.City, &d.Phone, &d.IsVerified, &d.Rating); err != nil {
+			continue
+		}
 		dists = append(dists, d)
 	}
 	c.JSON(http.StatusOK, gin.H{"data": dists})
@@ -970,10 +1141,31 @@ func (h *DistributorHandler) Nearby(c *gin.Context) {
 
 func (h *DistributorHandler) GetCatalog(c *gin.Context) {
 	distID := c.Param("id")
-	rows, _ := h.db.QueryContext(c.Request.Context(),
-		"SELECT id, name_ar, name_en, price, stock, category FROM products WHERE distributor_id = ? AND is_active = 1 ORDER BY category, name_ar LIMIT 100", distID)
-	defer rows.Close()
-	c.JSON(http.StatusOK, gin.H{"distributor_id": distID, "data": []interface{}{}})
+	rows, err := h.db.QueryContext(c.Request.Context(),
+		"SELECT id, name_ar, name_en, price, stock, category_id FROM products WHERE distributor_id = ? AND is_active = 1 ORDER BY category_id, name_ar LIMIT 100", distID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error"})
+		return
+	}
+	defer func() { _ = rows.Close() }()
+
+	type catalogItem struct {
+		ID       string  `json:"id"`
+		NameAR   string  `json:"name_ar"`
+		NameEN   string  `json:"name_en"`
+		Price    float64 `json:"price"`
+		Stock    int     `json:"stock"`
+		Category string  `json:"category"`
+	}
+	items := []catalogItem{}
+	for rows.Next() {
+		var it catalogItem
+		if err := rows.Scan(&it.ID, &it.NameAR, &it.NameEN, &it.Price, &it.Stock, &it.Category); err != nil {
+			continue
+		}
+		items = append(items, it)
+	}
+	c.JSON(http.StatusOK, gin.H{"distributor_id": distID, "data": items})
 }
 
 func (h *DistributorHandler) Create(c *gin.Context) {
@@ -986,7 +1178,7 @@ func (h *DistributorHandler) Create(c *gin.Context) {
 	d.JoinedAt = time.Now()
 	_, err := h.db.ExecContext(c.Request.Context(),
 		"INSERT INTO distributors (id, name_ar, name_en, city, region, phone, whatsapp, address, is_verified, rating, joined_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0.0, ?)",
-		d.ID, d.NameAR, d.NameEN, d.City, d.Region, d.Phone, d.WhatsApp, d.Address, d.JoinedAt)
+		d.ID, d.NameAR, d.NameEN, d.City, d.Region, d.Phone, d.WhatsApp, d.Address, formatSQLTime(d.JoinedAt))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "insert_error"})
 		return
@@ -1001,15 +1193,21 @@ func (h *DistributorHandler) Update(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_payload"})
 		return
 	}
-	h.db.ExecContext(c.Request.Context(),
+	if _, err := h.db.ExecContext(c.Request.Context(),
 		"UPDATE distributors SET name_ar = ?, name_en = ?, city = ?, phone = ?, whatsapp = ?, address = ? WHERE id = ?",
-		d.NameAR, d.NameEN, d.City, d.Phone, d.WhatsApp, d.Address, id)
+		d.NameAR, d.NameEN, d.City, d.Phone, d.WhatsApp, d.Address, id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error"})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"message": "updated"})
 }
 
 func (h *DistributorHandler) Verify(c *gin.Context) {
 	id := c.Param("id")
-	h.db.ExecContext(c.Request.Context(), "UPDATE distributors SET is_verified = 1 WHERE id = ?", id)
+	if _, err := h.db.ExecContext(c.Request.Context(), "UPDATE distributors SET is_verified = 1 WHERE id = ?", id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error"})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"message": "تم التحقق من الموزع / Distributor verified"})
 }
 

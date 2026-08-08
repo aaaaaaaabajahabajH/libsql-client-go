@@ -14,3 +14,24 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 test.db
+
+# ghyari-platform: local SQLite dev databases
+ghyari-platform/**/*.db
+ghyari-platform/**/*.db-shm
+ghyari-platform/**/*.db-wal
+
+# ghyari-platform: frontend/node dependencies and build output
+ghyari-platform/frontend/node_modules/
+ghyari-platform/frontend/dist/
+
+# ghyari-platform: `go build ./...` output binaries (main packages with no
+# explicit -o produce a binary named after their directory)
+ghyari-platform/ai-engine/ai-engine
+ghyari-platform/backend/backend
+
+# Environment files with real secrets (.env.example and .env.development
+# style files use a different filename and are unaffected by this)
+.env
+.env.local
+**/.env
+**/.env.local

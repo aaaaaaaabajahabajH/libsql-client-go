@@ -21,6 +21,7 @@ func Migrate(ctx context.Context, db *sql.DB) error {
 		{"create_orders", schemaOrders},
 		{"create_ai_radar", schemaAIRadar},
 		{"create_reviews", schemaReviews},
+		{"create_cart_and_garage", schemaCartAndGarage},
 		{"create_migrations_table", schemaMigrationsTable},
 	}
 
@@ -37,7 +38,9 @@ func Migrate(ctx context.Context, db *sql.DB) error {
 
 	for _, m := range migrations {
 		var exists int
-		db.QueryRowContext(ctx, `SELECT COUNT(*) FROM _migrations WHERE name = ?`, m.name).Scan(&exists)
+		if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM _migrations WHERE name = ?`, m.name).Scan(&exists); err != nil {
+			return fmt.Errorf("failed to check migration %q: %w", m.name, err)
+		}
 		if exists > 0 {
 			continue
 		}
@@ -45,7 +48,9 @@ func Migrate(ctx context.Context, db *sql.DB) error {
 		if _, err := db.ExecContext(ctx, m.sql); err != nil {
 			return fmt.Errorf("migration %q failed: %w", m.name, err)
 		}
-		db.ExecContext(ctx, `INSERT INTO _migrations (name) VALUES (?)`, m.name)
+		if _, err := db.ExecContext(ctx, `INSERT INTO _migrations (name) VALUES (?)`, m.name); err != nil {
+			return fmt.Errorf("failed to record migration %q: %w", m.name, err)
+		}
 		log.Printf("✅ Migration applied: %s", m.name)
 	}
 	return nil
@@ -321,6 +326,44 @@ CREATE TABLE IF NOT EXISTS reviews (
 );
 
 CREATE INDEX IF NOT EXISTS idx_reviews_product ON reviews(product_id, is_active);
+`
+
+// schemaCartAndGarage covers tables referenced by handlers but previously
+// missing from migrations: the shopping cart, a user's saved cars ("garage"),
+// and pre-computed AI product recommendations.
+const schemaCartAndGarage = `
+CREATE TABLE IF NOT EXISTS cart_items (
+	id         TEXT PRIMARY KEY,
+	user_id    TEXT NOT NULL REFERENCES users(id),
+	product_id TEXT NOT NULL REFERENCES products(id),
+	quantity   INTEGER NOT NULL DEFAULT 1,
+	added_at   TEXT DEFAULT (datetime('now')),
+	UNIQUE(user_id, product_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_cart_items_user ON cart_items(user_id);
+
+CREATE TABLE IF NOT EXISTS user_garage (
+	id           TEXT PRIMARY KEY,
+	user_id      TEXT NOT NULL REFERENCES users(id),
+	car_model_id TEXT NOT NULL REFERENCES car_models(id),
+	created_at   TEXT DEFAULT (datetime('now')),
+	UNIQUE(user_id, car_model_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_garage_user ON user_garage(user_id);
+
+CREATE TABLE IF NOT EXISTS ai_recommendations (
+	id         TEXT PRIMARY KEY,
+	user_id    TEXT NOT NULL REFERENCES users(id),
+	product_id TEXT NOT NULL REFERENCES products(id),
+	score      REAL DEFAULT 0,
+	reason_ar  TEXT,
+	expires_at TEXT NOT NULL,
+	created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_recommendations_user ON ai_recommendations(user_id, expires_at);
 `
 
 const schemaMigrationsTable = `SELECT 1;` // already created above, placeholder
