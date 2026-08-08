@@ -1,0 +1,55 @@
+# Vercel Web Analytics Installation Report
+
+## Summary
+Successfully installed and configured Vercel Web Analytics for this Next.js 15 application following the latest official documentation from https://vercel.com/docs/analytics/quickstart.
+
+## Changes Made
+
+### 1. Installed @vercel/analytics Package
+- Added `@vercel/analytics@^2.0.1` to project dependencies
+- Used npm to install the package and update package-lock.json
+
+### 2. Modified Files
+
+#### app/layout.tsx
+- Imported the `Analytics` component from `@vercel/analytics/next`
+- Added the `<Analytics />` component to the root layout before the closing `</body>` tag
+- Fixed import order to comply with ESLint rules (Analytics import before Next.js type imports)
+
+#### next.config.ts
+- Updated Content Security Policy (CSP) headers to allow Vercel Analytics scripts
+- Added `https://va.vercel-scripts.com` to both `script-src` and `connect-src` directives
+- This ensures the analytics scripts can load and communicate properly
+
+### 3. Package Manager Updates
+- Updated package.json with the new dependency
+- Updated package-lock.json with resolved dependencies
+
+## Implementation Details
+
+The Analytics component was added according to the Next.js App Router pattern:
+- Placed at the end of the `<body>` tag in the root layout
+- Uses the framework-specific import `@vercel/analytics/next`
+- Follows the recommended placement pattern from Vercel documentation
+
+## Testing & Validation
+
+✅ Build completed successfully with no errors
+✅ Linter ran with no new warnings or errors (only pre-existing warnings)
+✅ All 86 tests passed (5 test files)
+✅ Type checking passed during build
+
+## Next Steps
+
+To enable analytics in production:
+1. Deploy the application to Vercel
+2. Navigate to the Vercel dashboard → Analytics
+3. Select the project and click "Enable Web Analytics"
+4. After deployment, verify installation by checking browser Network tab for requests to `/_vercel/insights/*`
+
+## Notes
+
+- The Analytics component works automatically in both development and production
+- No additional configuration is required beyond what's been implemented
+- The component is lightweight and doesn't impact page performance
+- Analytics data will start appearing in the Vercel dashboard after the feature is enabled in the project settings
