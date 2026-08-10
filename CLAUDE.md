@@ -4,12 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository overview
 
-This repository actually contains two unrelated projects living side by side:
+This repository actually contains three unrelated projects living side by side:
 
 1. **`libsql-client-go`** (repo root, `libsql/`, `tests/`, `examples/`) — the upstream Turso/libSQL `database/sql` driver for Go. This is the original OSS project the repo is named after.
 2. **`ghyari-platform/`** (`ghyari-platform/`) — a separate, unrelated Arabic automotive-parts e-commerce platform (غياري) that was built inside this repo as an application that *consumes* the driver above via a `replace` directive. It has its own Go modules, a React/Three.js frontend, an AI worker, and its own CI/deploy pipeline.
+3. **`ghiyari/`** (`ghiyari/`) — a standalone React/Vite frontend prototype for the same "غياري" auto-parts concept, unrelated to `ghyari-platform/` (different spelling, no shared code, no Go/backend at all). Single-page app with mock product/dealer data, Claude AI chat, and Google Maps dealer/delivery tracking. See `ghiyari/CLAUDE.md` for its own structure and roadmap.
 
-Treat these as two independent codebases sharing one git history. Changes to one almost never require touching the other — check which one a task concerns before assuming shared conventions apply.
+Treat these as independent codebases sharing one git history. Changes to one almost never require touching the others — check which one a task concerns before assuming shared conventions apply.
 
 ---
 
@@ -115,3 +116,23 @@ There are currently no `_test.go` files under `ghyari-platform/` — treat any t
 - **Route structure** in `backend/main.go` is grouped by auth level: public (`/api/v1/products`, `/categories`, `/distributors`, `/cars`), authenticated (`protected` group: cart, orders, AI request submission), and admin-only (`admin` group, requiring `middleware.RequireRole("admin")`) — follow this three-tier grouping when adding new endpoints rather than adding ad-hoc middleware checks.
 - **Deployment is Cloud Run based**: `.github/workflows/deploy-gcloud.yml` triggers only on pushes to `main` that touch `ghyari-platform/**`, builds both Docker images (`backend/Dockerfile`, `frontend/Dockerfile`), pushes to Artifact Registry, deploys via `infrastructure/gcloud/cloudrun.yaml`/`deploy-cloudrun`, then health-checks `/health`. This workflow is entirely separate from the driver's `go.yml` CI and does not run for changes outside `ghyari-platform/`.
 - **Database**: uses this repo's own `libsql` driver against Turso in production and a local `file:./ghyari_local.db` SQLite file in dev — `db.Migrate`/`db.Seed` in `backend/internal/db` run automatically on every backend startup.
+
+---
+
+## Part 3: `ghiyari/` (standalone frontend prototype)
+
+A single-page React app with no backend of its own — not a Go module, not connected to `ghyari-platform/` or the driver. Full details live in `ghiyari/CLAUDE.md`; summary:
+
+```bash
+cd ghiyari
+npm install
+cp .env.example .env   # add VITE_ANTHROPIC_API_KEY / VITE_GOOGLE_MAPS_API_KEY etc; never commit .env
+npm run dev             # → http://localhost:5173
+npm run build
+npm run lint
+```
+
+- **Structure**: `src/App.jsx` is page routing + top-level state only; UI lives in `src/components/`, routes in `src/pages/`, external calls in `src/services/` (`claude.js` for Anthropic chat, `maps.js` for Google Maps), cart state in `src/hooks/useCart.js`, seed data in `src/data/mockData.js`, and AR/EN strings in `src/i18n/translations.js`.
+- **Data layer is mock-only**: `PRODUCTS`/`DEALERS`/`STATS` in `src/data/mockData.js` stand in for Supabase; Shopify checkout and Mailchimp signup are also mocked. Wiring any of these to a real backend means adding a `src/services/*.js` client and swapping the mock import, not touching component code.
+- **Google Maps integration is real**, not mocked (`DealersMap` on the Products page, `DeliveryTracker` on the Orders page) — it needs `VITE_GOOGLE_MAPS_API_KEY` in `.env` to render; without it the components show an inline "add your key" message instead of breaking.
+- **RTL/i18n**: `dir` on the root element switches with `lang` state (`ar`/`en`) — keep both language keys in sync in `src/i18n/translations.js` when adding UI text.
