@@ -9,7 +9,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -38,10 +40,39 @@ type CustomerRequest struct {
 	Fulfilled bool      `json:"fulfilled"`
 }
 
-// ClaudeMessage for the Claude API
+// ClaudeMessage for the Claude API. Content is either a plain string (a
+// simple user prompt) or a []ContentBlock (assistant tool_use echoes and
+// tool_result turns), matching what the Messages API accepts in either
+// position.
 type ClaudeMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role    string      `json:"role"`
+	Content interface{} `json:"content"`
+}
+
+// ContentBlock is one block of a Claude message: text, a tool_use request
+// from Claude, or a tool_result we're feeding back to it.
+type ContentBlock struct {
+	Type string `json:"type"`
+
+	// type: "text"
+	Text string `json:"text,omitempty"`
+
+	// type: "tool_use" (from Claude)
+	ID    string          `json:"id,omitempty"`
+	Name  string          `json:"name,omitempty"`
+	Input json.RawMessage `json:"input,omitempty"`
+
+	// type: "tool_result" (to Claude)
+	ToolUseID string `json:"tool_use_id,omitempty"`
+	Content   string `json:"content,omitempty"`
+	IsError   bool   `json:"is_error,omitempty"`
+}
+
+// ClaudeTool describes one callable tool in Claude Messages API format.
+type ClaudeTool struct {
+	Name        string          `json:"name"`
+	Description string          `json:"description,omitempty"`
+	InputSchema json.RawMessage `json:"input_schema"`
 }
 
 // ClaudeRequest for Claude API
@@ -49,14 +80,18 @@ type ClaudeRequest struct {
 	Model     string          `json:"model"`
 	MaxTokens int             `json:"max_tokens"`
 	Messages  []ClaudeMessage `json:"messages"`
+	Tools     []ClaudeTool    `json:"tools,omitempty"`
 }
 
 // ClaudeResponse from Claude API
 type ClaudeResponse struct {
-	Content []struct {
-		Text string `json:"text"`
-	} `json:"content"`
+	Content    []ContentBlock `json:"content"`
+	StopReason string         `json:"stop_reason"`
 }
+
+// maxToolRounds bounds how many Claude <-> MCP tool round-trips askClaude
+// will run before giving up, so a misbehaving tool loop can't run forever.
+const maxToolRounds = 5
 
 // AIRadar is the core intelligence engine
 type AIRadar struct {
@@ -64,22 +99,37 @@ type AIRadar struct {
 	claudeModel  string
 	httpClient   *http.Client
 	scanInterval time.Duration
+	mcpRegistry  *MCPToolRegistry
 }
 
-// NewAIRadar creates a new AI radar instance
-func NewAIRadar() *AIRadar {
+// NewAIRadar creates a new AI radar instance and connects to any MCP
+// servers configured via MCP_SERVERS.
+func NewAIRadar(ctx context.Context) *AIRadar {
 	interval := 300 * time.Second
 	if v := os.Getenv("SCAN_INTERVAL"); v != "" {
 		if secs, err := time.ParseDuration(v + "s"); err == nil {
 			interval = secs
 		}
 	}
+
+	mcpConfigs, err := LoadMCPServersFromEnv()
+	if err != nil {
+		log.Printf("⚠️  Invalid MCP_SERVERS config, continuing without MCP tools: %v", err)
+	}
+
 	return &AIRadar{
 		claudeAPIKey: os.Getenv("ANTHROPIC_API_KEY"),
 		claudeModel:  "claude-opus-4-7",
 		httpClient:   &http.Client{Timeout: 30 * time.Second},
 		scanInterval: interval,
+		mcpRegistry:  NewMCPToolRegistry(ctx, mcpConfigs),
 	}
+}
+
+// Close releases resources held by the radar, including any MCP server
+// subprocesses started by NewAIRadar.
+func (r *AIRadar) Close() {
+	r.mcpRegistry.Close()
 }
 
 // AnalyzeDemand sends unmet customer requests to Claude for analysis
@@ -183,24 +233,70 @@ func (r *AIRadar) AnalyzeNissanTuningDemand(ctx context.Context, requests []Cust
 	return demandSignals, nil
 }
 
-// askClaude sends a prompt to Claude and returns the text response
+// askClaude sends a prompt to Claude and returns its final text response.
+// When MCP servers are configured, Claude may request one or more tool
+// calls in between — those are executed against the connected MCP servers
+// and fed back as tool_results until Claude produces a final answer or
+// maxToolRounds is hit.
 func (r *AIRadar) askClaude(ctx context.Context, prompt string) (string, error) {
+	messages := []ClaudeMessage{{Role: "user", Content: prompt}}
+	tools := r.mcpRegistry.ClaudeTools()
+
+	for round := 0; round < maxToolRounds; round++ {
+		resp, err := r.callClaude(ctx, messages, tools)
+		if err != nil {
+			return "", err
+		}
+		if len(resp.Content) == 0 {
+			return "", fmt.Errorf("empty response from claude")
+		}
+		if resp.StopReason != "tool_use" {
+			return extractJSONArray(textFromContent(resp.Content)), nil
+		}
+
+		messages = append(messages, ClaudeMessage{Role: "assistant", Content: resp.Content})
+
+		var results []ContentBlock
+		for _, block := range resp.Content {
+			if block.Type != "tool_use" {
+				continue
+			}
+			log.Printf("🔧 Claude requested MCP tool %q", block.Name)
+			output, callErr := r.mcpRegistry.CallTool(ctx, block.Name, block.Input)
+			isErr := callErr != nil
+			if callErr != nil {
+				output = callErr.Error()
+			}
+			results = append(results, ContentBlock{
+				Type:      "tool_result",
+				ToolUseID: block.ID,
+				Content:   output,
+				IsError:   isErr,
+			})
+		}
+		messages = append(messages, ClaudeMessage{Role: "user", Content: results})
+	}
+
+	return "", fmt.Errorf("exceeded %d tool-use rounds without a final answer", maxToolRounds)
+}
+
+// callClaude makes one Messages API request and returns the raw response.
+func (r *AIRadar) callClaude(ctx context.Context, messages []ClaudeMessage, tools []ClaudeTool) (*ClaudeResponse, error) {
 	reqBody := ClaudeRequest{
 		Model:     r.claudeModel,
 		MaxTokens: 4096,
-		Messages: []ClaudeMessage{
-			{Role: "user", Content: prompt},
-		},
+		Messages:  messages,
+		Tools:     tools,
 	}
 
 	bodyBytes, err := json.Marshal(reqBody)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.anthropic.com/v1/messages", bytes.NewReader(bodyBytes))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-api-key", r.claudeAPIKey)
@@ -208,32 +304,42 @@ func (r *AIRadar) askClaude(ctx context.Context, prompt string) (string, error) 
 
 	resp, err := r.httpClient.Do(req)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("claude API error %d: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("claude API error %d: %s", resp.StatusCode, string(body))
 	}
 
 	var claudeResp ClaudeResponse
 	if err := json.NewDecoder(resp.Body).Decode(&claudeResp); err != nil {
-		return "", err
+		return nil, err
 	}
+	return &claudeResp, nil
+}
 
-	if len(claudeResp.Content) == 0 {
-		return "", fmt.Errorf("empty response from claude")
+// textFromContent concatenates the text blocks of a Claude response.
+func textFromContent(blocks []ContentBlock) string {
+	var sb strings.Builder
+	for _, b := range blocks {
+		if b.Type == "text" {
+			sb.WriteString(b.Text)
+		}
 	}
+	return sb.String()
+}
 
-	// Extract JSON from response (Claude might wrap it in markdown)
-	text := claudeResp.Content[0].Text
+// extractJSONArray pulls out the first top-level JSON array in text, since
+// Claude sometimes wraps the requested JSON in markdown or commentary.
+func extractJSONArray(text string) string {
 	start := strings.Index(text, "[")
 	end := strings.LastIndex(text, "]")
 	if start != -1 && end != -1 && end > start {
-		return text[start : end+1], nil
+		return text[start : end+1]
 	}
-	return text, nil
+	return text
 }
 
 // Run starts the continuous radar scanning loop
@@ -292,7 +398,11 @@ func filterByCarBrand(requests []CustomerRequest, brand string) []CustomerReques
 }
 
 func main() {
-	ctx := context.Background()
-	radar := NewAIRadar()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	radar := NewAIRadar(ctx)
+	defer radar.Close()
+
 	radar.Run(ctx)
 }

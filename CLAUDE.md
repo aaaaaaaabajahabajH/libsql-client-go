@@ -74,7 +74,7 @@ An independent multi-service app that depends on the driver above via `replace .
 ### Layout
 
 - `backend/` — Go/Gin REST API (module `github.com/ghyari/api`, Go 1.23). Entry point `main.go` wires DB connection, migrations/seed (`internal/db`), handlers (`internal/handlers`), auth/role middleware (`internal/middleware`), and GCS upload storage (`internal/storage`).
-- `ai-engine/` — standalone Go worker (module `github.com/ghyari/ai-engine`) that calls the Claude/Anthropic API to analyze customer demand signals ("AI Radar") and polls on `SCAN_INTERVAL`.
+- `ai-engine/` — standalone Go worker (module `github.com/ghyari/ai-engine`) that calls the Claude/Anthropic API to analyze customer demand signals ("AI Radar") and polls on `SCAN_INTERVAL`. Optionally connects to MCP servers configured via `MCP_SERVERS` (stdio JSON-RPC, see `mcp_client.go`/`mcp_registry.go`) so Claude can call external tools mid-analysis — see Conventions below.
 - `frontend/` — React 18 + TypeScript + Vite + Three.js/`@react-three/fiber` SPA with Arabic/English i18n (`react-i18next`) and RTL support.
 - `infrastructure/` — `docker-compose.yml` (api + frontend + redis + ai-radar + nginx), `nginx.conf`, and `gcloud/` (Cloud Run service specs, Cloud Build config).
 - `docs/` — architecture, product strategy, DB schema and roadmap docs (see `docs/ARCHITECTURE.md` for the full system diagram and service breakdown).
@@ -92,6 +92,7 @@ go run .                    # serves on :8080, defaults to file:./ghyari_local.d
 # AI engine
 cd ghyari-platform/ai-engine
 go build ./...
+go test ./...
 
 # Frontend
 cd ghyari-platform/frontend
@@ -106,7 +107,7 @@ cp ../.env.example .env      # then fill in real values
 docker compose up --build
 ```
 
-There are currently no `_test.go` files under `ghyari-platform/` — treat any test-writing task here as adding new coverage from scratch, not extending an existing suite.
+`ghyari-platform/ai-engine` has test coverage for its MCP client/registry (`*_test.go`); `backend/` and `frontend/` still have none — treat any test-writing task there as adding new coverage from scratch, not extending an existing suite.
 
 ### Conventions and gotchas
 
@@ -116,6 +117,7 @@ There are currently no `_test.go` files under `ghyari-platform/` — treat any t
 - **Route structure** in `backend/main.go` is grouped by auth level: public (`/api/v1/products`, `/categories`, `/distributors`, `/cars`), authenticated (`protected` group: cart, orders, AI request submission), and admin-only (`admin` group, requiring `middleware.RequireRole("admin")`) — follow this three-tier grouping when adding new endpoints rather than adding ad-hoc middleware checks.
 - **Deployment is Cloud Run based**: `.github/workflows/deploy-gcloud.yml` triggers only on pushes to `main` that touch `ghyari-platform/**`, builds both Docker images (`backend/Dockerfile`, `frontend/Dockerfile`), pushes to Artifact Registry, deploys via `infrastructure/gcloud/cloudrun.yaml`/`deploy-cloudrun`, then health-checks `/health`. This workflow is entirely separate from the driver's `go.yml` CI and does not run for changes outside `ghyari-platform/`.
 - **Database**: uses this repo's own `libsql` driver against Turso in production and a local `file:./ghyari_local.db` SQLite file in dev — `db.Migrate`/`db.Seed` in `backend/internal/db` run automatically on every backend startup.
+- **MCP tool integrations (`ai-engine`)**: set `MCP_SERVERS` to a JSON array of `{"name","command","args","env"}` objects to let the AI Radar's Claude calls invoke external tools mid-analysis (e.g. a fetch or filesystem MCP server). Each entry is spawned as a subprocess and speaks MCP over stdio; its tools are exposed to Claude as `<server-name>__<tool-name>`. Unset/blank (the default) means no tools — behavior is unchanged from before this existed. A server that fails to start or list tools is logged and skipped rather than crashing the radar. Because servers run as subprocesses inside the `ai-engine` container, an `npx`/`python`-based MCP server needs that runtime added to `ai-engine/Dockerfile` (the default image is a minimal `golang:alpine` build with no Node/Python). Go build note: `ai-engine`'s Dockerfile must build the whole package (`go build .`), not a single file (`go build ./radar.go`) — the MCP client/registry now live in sibling files (`mcp_client.go`, `mcp_registry.go`) in the same `package main`.
 
 ---
 
