@@ -1,11 +1,8 @@
-import { PlaceholderPage } from "@/components/placeholder-page";
+import type { Metadata } from "next";
+import { RegisterForm } from "@/components/auth/register-form";
+
+export const metadata: Metadata = { title: "إنشاء حساب" };
 
 export default function RegisterPage() {
-  return (
-    <PlaceholderPage
-      title="إنشاء حساب"
-      description="Supabase Auth"
-      phase="مرحلة Authentication"
-    />
-  );
+  return <RegisterForm />;
 }

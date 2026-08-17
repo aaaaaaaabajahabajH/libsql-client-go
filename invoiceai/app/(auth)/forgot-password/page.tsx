@@ -1,11 +1,8 @@
-import { PlaceholderPage } from "@/components/placeholder-page";
+import type { Metadata } from "next";
+import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
+
+export const metadata: Metadata = { title: "نسيت كلمة المرور" };
 
 export default function ForgotPasswordPage() {
-  return (
-    <PlaceholderPage
-      title="نسيت كلمة المرور"
-      description="Supabase Auth password reset"
-      phase="مرحلة Authentication"
-    />
-  );
+  return <ForgotPasswordForm />;
 }

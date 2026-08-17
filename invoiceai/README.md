@@ -56,6 +56,18 @@ types/
   index.ts             hand-written domain types (Invoice, Customer, Quote, ...)
 supabase/
   migrations/          SQL migrations (source of truth for the schema)
+lib/supabase/
+  client.ts            browser Supabase client (@supabase/ssr)
+  server.ts            server Supabase client — Server Components/Route Handlers
+  middleware.ts         session refresh + route protection, used by middleware.ts
+lib/validations/
+  auth.ts              Zod schemas: login, register, forgot-password
+components/auth/
+  login-form.tsx, register-form.tsx, forgot-password-form.tsx, sign-out-button.tsx
+app/auth/
+  callback/route.ts    exchanges the email-confirmation/reset code for a session
+  signout/route.ts     POST — signs out and redirects to /login
+middleware.ts           protects /dashboard/*, bounces logged-in users off auth pages
 ```
 
 Route groups (`(public)`, `(auth)`, `(dashboard)`) don't affect the URL — they
@@ -104,16 +116,79 @@ To apply it to a Supabase project: paste the file into the SQL Editor, or
 applying, regenerate types with
 `supabase gen types typescript --project-id <ref> > types/database.ts`.
 
-## Status: Phase 2 — Supabase schema
+## Authentication
 
-Phase 1 (structure scaffold — see below) plus the schema above. Still not
-built (by design — next phases, one at a time):
+Built with `@supabase/ssr` (App Router). Register / Login / Logout / Forgot
+password are all real, working flows against Supabase Auth — not
+placeholders — but they need `NEXT_PUBLIC_SUPABASE_URL` /
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local` to actually work at runtime.
+**No Supabase project is connected yet** (see "Not connected yet" below) —
+this phase is the code, ready to point at a project once one exists.
 
-1. Authentication (Supabase Auth, session handling, protected routes,
-   `middleware.ts`) — wires the app up to the schema above.
-2. Real dashboard layout (sidebar, mobile nav, org/user menu).
-3. Landing page content.
-4. Customers / Invoices / Invoice Builder / PDF generation / Quotes / AI
+- `middleware.ts` (root) is the primary guard: redirects unauthenticated
+  users hitting `/dashboard/*` to `/login?redirectTo=...`, and bounces
+  already-logged-in users away from `/login`, `/register`,
+  `/forgot-password` back to `/dashboard`.
+- `app/(dashboard)/layout.tsx` re-checks the session server-side
+  (`supabase.auth.getUser()`) and redirects to `/login` if there's no user —
+  defense in depth in case a request ever reaches a dashboard route without
+  going through middleware.
+- Register calls `supabase.auth.signUp()` with `full_name` in
+  `options.data`, matching the `handle_new_user` trigger in the schema
+  migration that reads `raw_user_meta_data ->> 'full_name'`. Handles both
+  cases: email confirmation required (no session yet → redirect to
+  `/login` with a toast) and confirmation disabled (session returned →
+  straight into `/dashboard`).
+- `app/auth/callback/route.ts` exchanges the `?code=` from both the
+  email-confirmation link and the password-reset link for a session
+  (`exchangeCodeForSession`), then redirects to `?next=` (defaults to
+  `/dashboard`).
+- `app/auth/signout/route.ts` is a plain POST route handler (invoked via a
+  `<form method="post">`, not a client-side fetch) so sign-out works even
+  without JS and cookies are cleared correctly on the server.
+- Forgot-password always shows the same "check your email" message whether
+  or not the address has an account — doesn't leak account existence.
+
+### Build-safety without a connected project
+
+`npm run build` and `npm run type-check` both pass with **no `.env.local`
+file at all** (verified — this is not aspirational). Two rules make that
+work, and matter for anyone adding more Supabase-backed pages:
+
+1. **Never call `createClient()` from `lib/supabase/client.ts` or
+   `lib/supabase/server.ts` during a component's render.** The browser
+   client is only constructed inside form submit handlers (see
+   `components/auth/*-form.tsx`) — never at module scope or in the render
+   body — so it's never invoked during Next's static-generation pass.
+2. **Any Server Component that calls the server Supabase client must set
+   `export const dynamic = "force-dynamic"`** on its route/layout (see
+   `app/(dashboard)/layout.tsx`). This excludes it from static prerendering
+   entirely, rather than trying and failing at build time. It's also just
+   correct for a personalized, session-dependent dashboard regardless.
+
+Route Handlers (`app/auth/callback`, `app/auth/signout`) and `middleware.ts`
+are exempt from this — Next never executes them at build time, only on a
+real request, so they're safe by construction.
+
+### Not connected yet
+
+No Supabase project is linked. The existing project on this account
+(`aalrashdi210@gmail.com`, currently `INACTIVE`) is **not** InvoiceAI's and
+was deliberately left untouched — the schema migration in
+`supabase/migrations/` is committed but not applied anywhere. Once a
+dedicated InvoiceAI project exists: fill in `.env.local` from
+`.env.local.example`, apply the migration (see "Database schema" above),
+and every flow above starts working end-to-end.
+
+## Status: Phase 3 — Authentication
+
+Phase 1 (structure scaffold, below) and Phase 2 (Supabase schema, "Database
+schema" above), plus Authentication above. Still not built (by design — next
+phases, one at a time):
+
+1. Real dashboard layout (sidebar, mobile nav, org/user menu).
+2. Landing page content.
+3. Customers / Invoices / Invoice Builder / PDF generation / Quotes / AI
    Assistant / Settings / Billing (Stripe) feature implementations.
 
 ### Phase 1 — structure scaffold
